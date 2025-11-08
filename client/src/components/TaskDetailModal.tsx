@@ -27,22 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-export interface Task {
-  id: string;
-  key: string;
-  title: string;
-  description?: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  assignee?: string;
-  reporter: string;
-  type: "epic" | "story" | "subtask";
-  storyPoints?: number;
-  labels?: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+import type { Task } from "@shared/schema";
+import { formatDistanceToNow } from "date-fns";
 
 interface TaskDetailModalProps {
   task: Task | null;
@@ -69,7 +55,7 @@ export default function TaskDetailModal({
 
   if (!task) return null;
 
-  const typeConfig = {
+  const typeConfig: Record<string, { className: string; label: string }> = {
     epic: { 
       className: "bg-[hsl(var(--lozenge-blocked-bg))] text-[hsl(var(--lozenge-blocked))] border-[hsl(var(--lozenge-blocked))]", 
       label: "Epic" 
@@ -317,11 +303,11 @@ export default function TaskDetailModal({
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Created:</span>
-                    <span>{task.createdAt}</span>
+                    <span>{formatDistanceToNow(new Date(task.createdAt), { addSuffix: true })}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Updated:</span>
-                    <span>{task.updatedAt}</span>
+                    <span>{formatDistanceToNow(new Date(task.updatedAt), { addSuffix: true })}</span>
                   </div>
                 </div>
               </div>
