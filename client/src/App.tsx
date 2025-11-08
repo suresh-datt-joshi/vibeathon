@@ -7,6 +7,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import TopNav from "@/components/TopNav";
 import Dashboard from "@/pages/Dashboard";
+import Projects from "@/pages/Projects";
 import ProjectDetail from "@/pages/ProjectDetail";
 import NewProject from "@/pages/NewProject";
 import Settings from "@/pages/Settings";
@@ -18,6 +19,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/projects" component={Projects} />
       <Route path="/project/:id" component={ProjectDetail} />
       <Route path="/new" component={NewProject} />
       <Route path="/settings" component={Settings} />

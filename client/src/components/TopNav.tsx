@@ -9,8 +9,15 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export default function TopNav() {
   const [, setLocation] = useLocation();
@@ -32,8 +39,8 @@ export default function TopNav() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button 
-            variant="default" 
+          <Button
+            variant="default"
             size="sm"
             onClick={() => setLocation("/new")}
             data-testid="button-create"
@@ -42,9 +49,21 @@ export default function TopNav() {
             Create
           </Button>
 
-          <Button variant="ghost" size="icon" data-testid="button-help">
-            <HelpCircle className="h-4 w-4" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                data-testid="button-help"
+                disabled
+              >
+                <HelpCircle className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent sideOffset={6}>
+              Help center coming soon
+            </TooltipContent>
+          </Tooltip>
 
           <ThemeToggle />
 
@@ -56,16 +75,24 @@ export default function TopNav() {
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setLocation("/settings")} data-testid="menu-settings">
+            <DropdownMenuContent align="end" sideOffset={8}>
+              <DropdownMenuLabel>Account</DropdownMenuLabel>
+              <DropdownMenuItem
+                onSelect={() => setLocation("/settings")}
+                data-testid="menu-settings"
+              >
                 <Settings className="h-4 w-4 mr-2" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setLocation("/profile")} data-testid="menu-profile">
+              <DropdownMenuItem
+                onSelect={() => setLocation("/profile")}
+                data-testid="menu-profile"
+              >
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem data-testid="menu-signout">
-                Sign out
+              <DropdownMenuSeparator />
+              <DropdownMenuItem data-testid="menu-signout" disabled>
+                Sign out (coming soon)
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

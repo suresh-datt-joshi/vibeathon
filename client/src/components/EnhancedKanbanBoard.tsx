@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -6,6 +6,11 @@ import { GripVertical, Plus, MoreHorizontal, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import TaskDetailModal from "./TaskDetailModal";
 import type { Task } from "@shared/schema";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface EnhancedKanbanBoardProps {
   projectId: string;
@@ -16,38 +21,43 @@ interface EnhancedKanbanBoardProps {
 export default function EnhancedKanbanBoard({ projectId, tasks, onTaskUpdate }: EnhancedKanbanBoardProps) {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [boardTasks, setBoardTasks] = useState(tasks);
 
-  const columns: Array<{ 
-    id: Task["status"]; 
+  useEffect(() => {
+    setBoardTasks(tasks);
+  }, [tasks]);
+
+  const columns: Array<{
+    id: Task["status"];
     title: string;
   }> = [
-    { id: "backlog", title: "Backlog" },
-    { id: "todo", title: "To Do" },
-    { id: "in_progress", title: "In Progress" },
-    { id: "review", title: "Review" },
-    { id: "done", title: "Done" },
-  ];
+      { id: "backlog", title: "Backlog" },
+      { id: "todo", title: "To Do" },
+      { id: "in_progress", title: "In Progress" },
+      { id: "review", title: "Review" },
+      { id: "done", title: "Done" },
+    ];
 
   const handleTaskClick = (task: Task) => {
     setSelectedTask(task);
     setIsModalOpen(true);
   };
 
-  const getColumnTasks = (status: Task["status"]) => 
-    tasks.filter((task) => task.status === status);
+  const getColumnTasks = (status: Task["status"]) =>
+    boardTasks.filter((task) => task.status === status);
 
   const typeConfig: Record<string, { className: string; label: string }> = {
-    epic: { 
-      className: "bg-[hsl(var(--lozenge-blocked-bg))] text-[hsl(var(--lozenge-blocked))] border-[hsl(var(--lozenge-blocked))]", 
-      label: "Epic" 
+    epic: {
+      className: "bg-[hsl(var(--lozenge-blocked-bg))] text-[hsl(var(--lozenge-blocked))] border-[hsl(var(--lozenge-blocked))]",
+      label: "Epic"
     },
-    story: { 
-      className: "bg-[hsl(var(--lozenge-todo-bg))] text-[hsl(var(--lozenge-todo))] border-[hsl(var(--lozenge-todo))]", 
-      label: "Story" 
+    story: {
+      className: "bg-[hsl(var(--lozenge-todo-bg))] text-[hsl(var(--lozenge-todo))] border-[hsl(var(--lozenge-todo))]",
+      label: "Story"
     },
-    subtask: { 
-      className: "bg-[hsl(var(--lozenge-low-bg))] text-[hsl(var(--lozenge-low))] border-[hsl(var(--lozenge-low))]", 
-      label: "Subtask" 
+    subtask: {
+      className: "bg-[hsl(var(--lozenge-low-bg))] text-[hsl(var(--lozenge-low))] border-[hsl(var(--lozenge-low))]",
+      label: "Subtask"
     },
   };
 
@@ -69,7 +79,7 @@ export default function EnhancedKanbanBoard({ projectId, tasks, onTaskUpdate }: 
       <div className="flex gap-4 overflow-x-auto pb-4 flex-1">
         {columns.map((column) => {
           const columnTasks = getColumnTasks(column.id);
-          
+
           return (
             <div key={column.id} className="flex-shrink-0 w-[280px] flex flex-col">
               <div className="bg-muted/50 rounded-t-lg px-3 py-2 border-b">
@@ -82,16 +92,25 @@ export default function EnhancedKanbanBoard({ projectId, tasks, onTaskUpdate }: 
                       {columnTasks.length}
                     </Badge>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <Plus className="h-3 w-3" />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" disabled>
+                          <Plus className="h-3 w-3" />
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent sideOffset={6}>
+                      Drag-and-drop creation coming soon
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
               <div className="flex-1 bg-muted/30 p-2 space-y-2 overflow-y-auto rounded-b-lg">
                 {columnTasks.map((task) => (
-                  <Card 
-                    key={task.id} 
+                  <Card
+                    key={task.id}
                     className="hover-elevate cursor-pointer group bg-card shadow-sm"
                     onClick={() => handleTaskClick(task)}
                     data-testid={`task-${task.id}`}
@@ -118,15 +137,15 @@ export default function EnhancedKanbanBoard({ projectId, tasks, onTaskUpdate }: 
                     <CardContent className="p-3 pt-0">
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1">
-                          <Badge 
-                            variant="outline" 
+                          <Badge
+                            variant="outline"
                             className={`text-xs h-5 px-1.5 ${getTypeConfig(task.type).className}`}
                           >
                             {getTypeConfig(task.type).label}
                           </Badge>
                           {task.aiGenerated && (
-                            <Badge 
-                              variant="outline" 
+                            <Badge
+                              variant="outline"
                               className="text-xs h-5 px-1.5 bg-[hsl(var(--lozenge-done-bg))] text-[hsl(var(--lozenge-done))] border-[hsl(var(--lozenge-done))]"
                             >
                               AI
@@ -159,16 +178,19 @@ export default function EnhancedKanbanBoard({ projectId, tasks, onTaskUpdate }: 
           );
         })}
       </div>
-      
+
       <TaskDetailModal
         task={selectedTask}
         open={isModalOpen}
         onOpenChange={setIsModalOpen}
         onUpdateTask={(updatedTask) => {
           setSelectedTask(updatedTask);
-          if (onTaskUpdate) {
-            onTaskUpdate(updatedTask);
-          }
+          setBoardTasks((previous) =>
+            previous.map((task) =>
+              task.id === updatedTask.id ? { ...task, ...updatedTask } : task
+            )
+          );
+          onTaskUpdate?.(updatedTask);
         }}
       />
     </div>

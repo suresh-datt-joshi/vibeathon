@@ -16,21 +16,25 @@ const menuItems = [
     title: "Dashboard",
     url: "/",
     icon: LayoutDashboard,
+    match: (path: string) => path === "/",
   },
   {
     title: "Projects",
-    url: "/",
+    url: "/projects",
     icon: FolderKanban,
+    match: (path: string) => path === "/projects" || path.startsWith("/project/"),
   },
   {
     title: "Reports",
     url: "/reports",
     icon: BarChart3,
+    match: (path: string) => path.startsWith("/reports"),
   },
   {
     title: "Settings",
     url: "/settings",
     icon: Settings,
+    match: (path: string) => path.startsWith("/settings"),
   },
 ];
 
@@ -46,8 +50,17 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location === item.url}>
-                    <a href={item.url} data-testid={`sidebar-${item.title.toLowerCase()}`}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={item.match ? item.match(location) : location === item.url}
+                  >
+                    <a
+                      href={item.url}
+                      data-testid={`sidebar-${item.title.toLowerCase()}`}
+                      aria-current={
+                        item.match ? (item.match(location) ? "page" : undefined) : location === item.url ? "page" : undefined
+                      }
+                    >
                       <item.icon />
                       <span>{item.title}</span>
                     </a>

@@ -3,11 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import EnhancedKanbanBoard from "@/components/EnhancedKanbanBoard";
-import { Share2, Download, Settings, Sparkles, Loader2 } from "lucide-react";
+import { Share2, Download, Settings, Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Task {
   id: string;
@@ -86,11 +92,7 @@ export default function ProjectDetail() {
   });
 
   if (isLoading) {
-    return (
-      <div className="h-full flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <ProjectDetailSkeleton />;
   }
 
   if (error || !data) {
@@ -128,14 +130,53 @@ export default function ProjectDetail() {
     return acc;
   }, {} as Record<string, Module[]>);
 
+  const handleShareClick = async () => {
+    const shareUrl = window.location.href;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast({
+        title: "Link copied",
+        description: "Project link copied to your clipboard.",
+      });
+    } catch {
+      toast({
+        title: "Unable to copy link",
+        description: "Please copy the URL from the address bar.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportClick = () => {
+    const payload = JSON.stringify({ project, tasks, modules }, null, 2);
+    const blob = new Blob([payload], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${project.key.toLowerCase()}-project.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export started",
+      description: "Downloading AI-generated project JSON.",
+    });
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="border-b border-border bg-card px-6 py-4 flex-shrink-0">
-        <Breadcrumbs items={[
-          { label: "Projects", href: "/" },
-          { label: project.name }
-        ]} />
-        
+        <Breadcrumbs
+          items={[
+            { label: "Projects", href: "/projects" },
+            { label: project.name },
+          ]}
+        />
+
         <div className="flex items-center justify-between mt-3">
           <div className="flex items-center gap-3">
             <div>
@@ -148,19 +189,43 @@ export default function ProjectDetail() {
               {completedTasks}/{tasks.length} Done
             </Badge>
           </div>
-          
+
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" data-testid="button-share">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="button-share"
+              onClick={handleShareClick}
+            >
               <Share2 className="h-4 w-4 mr-1" />
               Share
             </Button>
-            <Button variant="outline" size="sm" data-testid="button-export">
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="button-export"
+              onClick={handleExportClick}
+            >
               <Download className="h-4 w-4 mr-1" />
               Export
             </Button>
-            <Button variant="outline" size="icon" data-testid="button-settings">
-              <Settings className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    data-testid="button-settings"
+                    disabled
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent sideOffset={6}>
+                Project settings coming soon
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -168,29 +233,29 @@ export default function ProjectDetail() {
       <Tabs defaultValue="board" className="flex-1 flex flex-col min-h-0">
         <div className="border-b border-border px-6 flex-shrink-0">
           <TabsList className="bg-transparent h-auto p-0">
-            <TabsTrigger 
-              value="board" 
+            <TabsTrigger
+              value="board"
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3"
               data-testid="tab-board"
             >
               Board
             </TabsTrigger>
-            <TabsTrigger 
-              value="timeline" 
+            <TabsTrigger
+              value="timeline"
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3"
               data-testid="tab-timeline"
             >
               Timeline
             </TabsTrigger>
-            <TabsTrigger 
-              value="architecture" 
+            <TabsTrigger
+              value="architecture"
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3"
               data-testid="tab-architecture"
             >
               Architecture
             </TabsTrigger>
-            <TabsTrigger 
-              value="export" 
+            <TabsTrigger
+              value="export"
               className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-3"
               data-testid="tab-export"
             >
@@ -201,17 +266,18 @@ export default function ProjectDetail() {
 
         <div className="flex-1 overflow-auto">
           <TabsContent value="board" className="m-0 p-6 h-full">
-            <EnhancedKanbanBoard 
-              projectId={project.id} 
-              tasks={tasks} 
+            <EnhancedKanbanBoard
+              projectId={project.id}
+              tasks={tasks}
               onTaskUpdate={handleTaskUpdate}
             />
           </TabsContent>
 
           <TabsContent value="timeline" className="m-0 p-6">
-            <div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
-              <p className="text-muted-foreground">Timeline view coming soon</p>
-            </div>
+            <FeaturePlaceholder
+              title="Timeline view"
+              description="Visualize sprints, releases, and milestones. We’re building an interactive roadmap to surface schedule risks early."
+            />
           </TabsContent>
 
           <TabsContent value="architecture" className="m-0 p-6">
@@ -220,7 +286,7 @@ export default function ProjectDetail() {
                 <Sparkles className="h-4 w-4 text-primary" />
                 <span className="font-medium">AI-Generated Architecture</span>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {["frontend", "backend", "database"].map((layer) => {
                   const layerModules = groupedModules[layer] || [];
@@ -262,8 +328,11 @@ export default function ProjectDetail() {
           <TabsContent value="export" className="m-0 p-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="font-semibold">JSON Export</h3>
-                <Button variant="outline" size="sm">
+                <div>
+                  <h3 className="font-semibold">JSON Export</h3>
+                  <p className="text-sm text-muted-foreground">Download the AI-generated plan for use in Jira, Notion, or other tools.</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleExportClick} data-testid="button-export-json">
                   <Download className="h-4 w-4 mr-1" />
                   Download JSON
                 </Button>
@@ -275,6 +344,54 @@ export default function ProjectDetail() {
           </TabsContent>
         </div>
       </Tabs>
+    </div>
+  );
+}
+
+function ProjectDetailSkeleton() {
+  return (
+    <div className="h-full flex flex-col">
+      <div className="border-b border-border bg-card px-6 py-4">
+        <Skeleton className="h-3 w-24 mb-2" />
+        <Skeleton className="h-6 w-64" />
+      </div>
+      <div className="p-6 space-y-4 flex-1 overflow-auto">
+        <div className="flex gap-4">
+          {[...Array(4)].map((_, index) => (
+            <Skeleton key={index} className="h-10 flex-1" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="border rounded-lg p-4 space-y-3 bg-card">
+              <Skeleton className="h-5 w-28" />
+              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-3 w-2/3" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FeaturePlaceholder({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-center justify-center h-64 border border-dashed rounded-lg bg-muted/30 text-center px-10">
+      <div className="space-y-2 max-w-xl">
+        <div className="flex justify-center">
+          <Sparkles className="h-5 w-5 text-primary" />
+        </div>
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
     </div>
   );
 }
