@@ -1,0 +1,91 @@
+Visual Aesthetic Requirements (based on Atlassian Design System):
+
+Overall Impression: The interface must feel clean, professional, intuitive, and highly functional, prioritizing clarity and structured information display over ornamentation.
+
+Color Palette:
+
+Primary Accent: Utilize a vibrant, accessible Blue (#0052CC) for primary buttons, links, selected states, and key interactive elements.
+
+Neutrals: Dominate backgrounds with light grays and whites (#FFFFFF, #F4F5F7). Use dark gray text (#172B4D) for high contrast and readability.
+
+Semantic Colors (Lozenges/Pills): Implement distinct, rounded lozenges for status indicators using specific colors:
+
+Blue (#0052CC): "To Do," "Open"
+
+Green (#038153): "Done," "Resolved"
+
+Red (#DE350B): "Blocked," "Highest Priority"
+
+Yellow (#FFAB00): "In Progress," "In Review"
+
+Gray (#5E6C84): "Lowest Priority," "Cancelled"
+
+Typography: Employ a clean, modern sans-serif font throughout (e.g., Atlassian Sans, Inter, Roboto, or Figtree). Establish a clear type hierarchy with distinct sizes and weights for titles, body text, and helper text.
+
+UI Components:
+
+Navigation: Include a persistent, collapsible left-hand sidebar for global navigation (e.g., 'Projects', 'Dashboards', 'Reports') and a horizontal top navigation bar for project-specific breadcrumbs, global search, a 'Create Task' button, and user profile/settings.
+
+Cards: Represent individual tasks as distinct, slightly rounded, light gray "cards" with a subtle border/shadow. Each card should clearly display the task title, unique ID, assignee avatar, and priority/type icons.
+
+Lozenges: Use the specified semantic colored "pill" components for all status indicators, labels, and priorities.
+
+Avatars: Display circular user avatars for assignees, reporters, and in comment sections.
+
+Buttons: Implement a clear hierarchy: Primary (solid blue), Standard (light gray background, blue text), and Subtle/Ghost (blue text only).
+
+Issue/Task Detail View (Modal): When a task card is clicked, display a detailed view in a modal window. This modal should have a two-column layout:
+
+Left Column (main content): Task Title, Description field (rich text editor), Activity Log (comments, status changes), Attachments.
+
+Right Column (metadata sidebar): Collapsible panels for fields like Assignee, Reporter, Status, Priority, Type (e.g., 'Story', 'Bug', 'Task'), Labels, Due Date, Sprint, and Linked Issues.
+
+Layout & Spacing: Adhere to a grid-based layout. Use consistent padding, margins, and component spacing to enhance readability and maintain a structured appearance. Rounded corners should be applied subtly to cards, buttons, and input fields.
+
+Workflow and Terminology Requirements (Jira-inspired):
+
+Core Entities: The application should primarily manage 'Projects', which contain various 'Tasks' (or 'Issues').
+
+Task Types (Issue Types): Allow for different types of tasks, such as:
+
+Story: A user-centric requirement.
+
+Bug: A defect or error.
+
+Task: A general piece of work.
+
+Epic: A large body of work that can be broken down into Stories or Tasks.
+
+Task Lifecycle (Workflow Statuses): Implement a clear workflow with at least these core statuses, visually represented by the semantic lozenges:
+
+To Do: Task is identified but not started.
+
+In Progress: Work has commenced on the task.
+
+In Review: Task is completed but awaiting review/validation.
+
+Done: Task is fully completed and accepted.
+
+Key Fields for Tasks: Each task should include:
+
+Summary (Title): Concise description.
+
+Description: Detailed explanation (rich text).
+
+Assignee: The user responsible.
+
+Reporter: The user who created the task.
+
+Status: Current stage in the workflow.
+
+Priority: Urgency (e.g., 'Highest', 'High', 'Medium', 'Low', 'Lowest').
+
+Labels: Categorization tags.
+
+Sprint/Iteration: The period of work the task belongs to.
+
+Due Date: Target completion date.
+
+Comments: A chronological activity feed for team communication.
+
+Boards: Feature both Kanban Boards (columns representing statuses, tasks flowing left-to-right) and Scrum Boards (including a 'Backlog' view for planning and 'Sprint Boards' for active work).
