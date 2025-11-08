@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { GripVertical, Plus, Sparkles } from "lucide-react";
+import { GripVertical, Plus, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Task {
@@ -23,128 +23,119 @@ interface EnhancedKanbanBoardProps {
 export default function EnhancedKanbanBoard({ projectId, tasks }: EnhancedKanbanBoardProps) {
   const columns: Array<{ 
     id: Task["status"]; 
-    title: string; 
-    color: string;
+    title: string;
   }> = [
-    { id: "backlog", title: "Backlog", color: "text-muted-foreground" },
-    { id: "todo", title: "To Do", color: "text-primary" },
-    { id: "in_progress", title: "In Progress", color: "text-secondary" },
-    { id: "review", title: "Review", color: "text-accent" },
-    { id: "done", title: "Done", color: "text-chart-3" },
+    { id: "backlog", title: "Backlog" },
+    { id: "todo", title: "To Do" },
+    { id: "in_progress", title: "In Progress" },
+    { id: "review", title: "Review" },
+    { id: "done", title: "Done" },
   ];
 
   const getColumnTasks = (status: Task["status"]) => 
     tasks.filter((task) => task.status === status);
 
-  const typeColors: Record<Task["type"], string> = {
-    epic: "bg-accent/10 text-accent border-accent/30",
-    story: "bg-primary/10 text-primary border-primary/30",
-    subtask: "bg-secondary/10 text-secondary border-secondary/30",
+  const typeConfig: Record<Task["type"], { color: string; label: string }> = {
+    epic: { color: "bg-destructive/10 text-destructive", label: "Epic" },
+    story: { color: "bg-primary/10 text-primary", label: "Story" },
+    subtask: { color: "bg-accent/10 text-accent", label: "Subtask" },
   };
 
-  const priorityDots: Record<string, string> = {
-    low: "bg-muted-foreground",
-    medium: "bg-primary",
-    high: "bg-destructive",
+  const priorityColors: Record<string, string> = {
+    low: "text-muted-foreground",
+    medium: "text-secondary",
+    high: "text-destructive",
   };
 
   return (
-    <div className="space-y-4" data-testid={`kanban-board-${projectId}`}>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold">Task Board</h3>
-          <Badge variant="outline" className="text-xs">
-            {tasks.length} total
-          </Badge>
-        </div>
-        <Button size="sm" data-testid="button-add-task">
-          <Plus className="h-3 w-3 mr-1" />
-          Add Task
-        </Button>
-      </div>
-
-      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin">
+    <div className="h-full flex flex-col" data-testid={`kanban-board-${projectId}`}>
+      <div className="flex gap-4 overflow-x-auto pb-4 flex-1">
         {columns.map((column) => {
           const columnTasks = getColumnTasks(column.id);
-          const totalPoints = columnTasks.reduce((sum, t) => sum + (t.storyPoints || 0), 0);
           
           return (
-            <div key={column.id} className="flex-shrink-0 w-[320px]">
-              <div className="glass-strong rounded-lg overflow-hidden">
-                <div className="p-4 border-b border-border/50">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className={`font-semibold text-sm ${column.color}`}>
+            <div key={column.id} className="flex-shrink-0 w-[280px] flex flex-col">
+              <div className="bg-muted/50 rounded-t-lg px-3 py-2 border-b">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-sm uppercase text-muted-foreground tracking-wide">
                       {column.title}
-                    </h4>
-                    <Badge variant="secondary" className="text-xs">
+                    </h3>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-xs font-normal">
                       {columnTasks.length}
                     </Badge>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {totalPoints} story points
-                  </div>
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <Plus className="h-3 w-3" />
+                  </Button>
                 </div>
+              </div>
 
-                <div className="p-3 space-y-3 min-h-[400px] max-h-[600px] overflow-y-auto">
-                  {columnTasks.map((task) => (
-                    <Card 
-                      key={task.id} 
-                      className="hover-elevate cursor-move group relative overflow-hidden"
-                      data-testid={`task-${task.id}`}
-                    >
-                      <div className={`absolute top-0 left-0 bottom-0 w-1 ${
-                        task.priority === "high" ? "bg-destructive" :
-                        task.priority === "medium" ? "bg-primary" :
-                        "bg-muted-foreground"
-                      }`} />
-                      
-                      <CardHeader className="p-3 pb-2">
-                        <div className="flex items-start gap-2">
-                          <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0 space-y-2">
-                            <p className="text-sm font-medium leading-snug line-clamp-2">
-                              {task.title}
-                            </p>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Badge 
-                                variant="outline" 
-                                className={`text-xs ${typeColors[task.type]}`}
-                              >
-                                {task.type}
-                              </Badge>
-                              {task.aiGenerated && (
-                                <Badge variant="outline" className="text-xs gap-1">
-                                  <Sparkles className="h-2.5 w-2.5" />
-                                  AI
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-
-                      <CardContent className="p-3 pt-0">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {task.assignee && (
-                              <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-xs">
-                                  {task.assignee.substring(0, 2).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
-                            )}
-                            <div className={`h-1.5 w-1.5 rounded-full ${priorityDots[task.priority]}`} />
-                          </div>
-                          {task.storyPoints && (
-                            <span className="text-xs font-semibold text-muted-foreground">
-                              {task.storyPoints} pts
+              <div className="flex-1 bg-muted/30 p-2 space-y-2 overflow-y-auto rounded-b-lg">
+                {columnTasks.map((task) => (
+                  <Card 
+                    key={task.id} 
+                    className="hover-elevate cursor-pointer group bg-card shadow-sm"
+                    data-testid={`task-${task.id}`}
+                  >
+                    <CardHeader className="p-3 pb-2">
+                      <div className="flex items-start gap-2">
+                        <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-mono text-primary font-medium">
+                              {task.id}
                             </span>
+                            <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100">
+                              <MoreHorizontal className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          <p className="text-sm leading-snug line-clamp-3">
+                            {task.title}
+                          </p>
+                        </div>
+                      </div>
+                    </CardHeader>
+
+                    <CardContent className="p-3 pt-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1">
+                          <Badge 
+                            variant="outline" 
+                            className={`text-xs h-5 px-1.5 ${typeConfig[task.type].color}`}
+                          >
+                            {typeConfig[task.type].label}
+                          </Badge>
+                          {task.aiGenerated && (
+                            <Badge 
+                              variant="outline" 
+                              className="text-xs h-5 px-1.5 bg-chart-3/10 text-chart-3"
+                            >
+                              AI
+                            </Badge>
                           )}
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        <div className="flex items-center gap-2">
+                          {task.storyPoints && (
+                            <Badge variant="secondary" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
+                              {task.storyPoints}
+                            </Badge>
+                          )}
+                          {task.assignee && (
+                            <Avatar className="h-5 w-5">
+                              <AvatarFallback className="text-xs">
+                                {task.assignee}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          <span className={`text-lg ${priorityColors[task.priority]}`}>
+                            •
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
           );

@@ -1,14 +1,17 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import Breadcrumbs from "@/components/Breadcrumbs";
 import AIProcessingIndicator from "@/components/AIProcessingIndicator";
-import { Sparkles, Zap, Layers, FileJson } from "lucide-react";
+import { Sparkles, Zap, Info } from "lucide-react";
 import { useState } from "react";
 
 export default function NewProject() {
   const [projectName, setProjectName] = useState("");
+  const [projectKey, setProjectKey] = useState("");
   const [requirements, setRequirements] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -47,137 +50,151 @@ export default function NewProject() {
     }, 150);
   };
 
-  const examples = [
-    "Build a food delivery app with restaurant listings, cart, and order tracking",
-    "Create a fitness tracking app with workout plans and progress analytics",
-    "Develop a real estate platform with property listings and virtual tours",
-  ];
-
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="glass-strong rounded-lg p-6">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Sparkles className="h-7 w-7 text-primary" />
-          Create New Project
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Describe your project idea and let AI generate the complete architecture, tasks, and specifications
-        </p>
+    <div className="max-w-[1400px] mx-auto">
+      <div className="border-b border-border bg-card px-6 py-4">
+        <Breadcrumbs items={[
+          { label: "Projects", href: "/" },
+          { label: "Create Project" }
+        ]} />
+        <h1 className="text-2xl font-semibold mt-3">Create AI-Powered Project</h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                Project Details
-              </CardTitle>
-              <CardDescription>
-                Provide detailed requirements for best AI-generated results
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+      <div className="p-6 space-y-6">
+        <Card>
+          <CardHeader className="border-b">
+            <CardTitle className="text-base font-semibold">Project Details</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6 space-y-6">
+            <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="project-name">Project Name</Label>
+                <Label htmlFor="project-name">
+                  Project Name <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="project-name"
                   placeholder="e.g., E-commerce Platform"
                   value={projectName}
                   onChange={(e) => setProjectName(e.target.value)}
                   data-testid="input-project-name"
-                  className="glass-light"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="requirements">Requirements</Label>
-                <Textarea
-                  id="requirements"
-                  placeholder="Describe your project in detail. Include features, user types, integrations, and technical requirements..."
-                  className="min-h-[240px] glass-light"
-                  value={requirements}
-                  onChange={(e) => setRequirements(e.target.value)}
-                  data-testid="input-requirements"
+                <Label htmlFor="project-key">
+                  Project Key <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="project-key"
+                  placeholder="e.g., ECOM"
+                  value={projectKey}
+                  onChange={(e) => setProjectKey(e.target.value.toUpperCase())}
+                  data-testid="input-project-key"
+                  className="font-mono"
+                  maxLength={10}
                 />
-                <div className="flex items-start gap-2">
-                  <Zap className="h-3.5 w-3.5 text-primary mt-0.5" />
-                  <p className="text-xs text-muted-foreground">
-                    Be specific about features, user flows, data requirements, and external integrations for optimal results.
-                  </p>
+                <p className="text-xs text-muted-foreground">
+                  Used as a prefix for task IDs (e.g., ECOM-1, ECOM-2)
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="requirements">
+                Requirements <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                id="requirements"
+                placeholder="Describe your project in detail. Include features, user types, integrations, and technical requirements..."
+                className="min-h-[200px] resize-none"
+                value={requirements}
+                onChange={(e) => setRequirements(e.target.value)}
+                data-testid="input-requirements"
+              />
+              <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                <Info className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <div className="text-sm space-y-1">
+                  <p className="font-medium">Tips for better results:</p>
+                  <ul className="text-muted-foreground space-y-0.5 ml-4 list-disc">
+                    <li>Specify key features and user flows</li>
+                    <li>Mention any third-party integrations needed</li>
+                    <li>Include technical requirements or constraints</li>
+                    <li>Define user roles and permissions if applicable</li>
+                  </ul>
                 </div>
               </div>
+            </div>
+          </CardContent>
+        </Card>
 
-              <div className="flex gap-2 pt-2">
-                <Button
-                  className="flex-1 gap-2"
-                  onClick={handleGenerate}
-                  disabled={!projectName || !requirements || isProcessing}
-                  data-testid="button-generate"
-                >
-                  <Sparkles className="h-4 w-4" />
-                  Generate Architecture
-                </Button>
-                <Button variant="outline" data-testid="button-save-draft">
-                  Save Draft
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        {isProcessing && (
+          <AIProcessingIndicator
+            stage={stage}
+            progress={progress}
+            substage={progress < 50 ? "Analyzing..." : "Generating..."}
+          />
+        )}
 
-          {isProcessing && (
-            <AIProcessingIndicator
-              stage={stage}
-              progress={progress}
-              substage={progress < 50 ? "Analyzing..." : "Generating..."}
-            />
-          )}
-        </div>
-
-        <div className="space-y-4">
-          <Card className="glass">
-            <CardHeader>
-              <CardTitle className="text-base">Example Prompts</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {examples.map((example, i) => (
-                <button
-                  key={i}
-                  onClick={() => setRequirements(example)}
-                  className="w-full text-left p-3 rounded-lg glass-light hover-elevate text-xs transition-all"
-                >
-                  {example}
-                </button>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="glass-strong relative overflow-hidden">
-            <div className="absolute top-0 left-0 right-0 h-0.5 gradient-aurora" />
-            <CardHeader>
-              <CardTitle className="text-base">AI Process</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { icon: Sparkles, label: "Analyze", desc: "AI analyzes requirements" },
-                  { icon: Layers, label: "Design", desc: "Generate architecture" },
-                  { icon: Zap, label: "Tasks", desc: "Break into actionable items" },
-                  { icon: FileJson, label: "Export", desc: "Complete JSON output" },
-                ].map(({ icon: Icon, label, desc }, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center flex-shrink-0">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{label}</p>
-                      <p className="text-xs text-muted-foreground">{desc}</p>
-                    </div>
+        <Card>
+          <CardHeader className="border-b">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base font-semibold">AI Generation Process</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {[
+                { 
+                  step: "1", 
+                  title: "Analyze", 
+                  desc: "AI analyzes your requirements and identifies key features" 
+                },
+                { 
+                  step: "2", 
+                  title: "Design", 
+                  desc: "Generates optimal architecture with frontend, backend, and database modules" 
+                },
+                { 
+                  step: "3", 
+                  title: "Tasks", 
+                  desc: "Breaks down implementation into actionable tasks with priorities" 
+                },
+                { 
+                  step: "4", 
+                  title: "Export", 
+                  desc: "Provides complete JSON specification ready for export" 
+                },
+              ].map(({ step, title, desc }) => (
+                <div key={step} className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="h-6 w-6 p-0 flex items-center justify-center">
+                      {step}
+                    </Badge>
+                    <h3 className="font-semibold text-sm">{title}</h3>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="flex items-center justify-between pt-4 border-t">
+          <Button variant="outline" data-testid="button-cancel">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleGenerate}
+            disabled={!projectName || !projectKey || !requirements || isProcessing}
+            data-testid="button-generate"
+            className="gap-2"
+          >
+            <Zap className="h-4 w-4" />
+            Generate Project Architecture
+          </Button>
         </div>
       </div>
     </div>

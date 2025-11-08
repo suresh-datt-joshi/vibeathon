@@ -1,148 +1,241 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import ProjectCard from "@/components/ProjectCard";
-import { Plus, FolderKanban, CheckCircle, Clock, Sparkles, TrendingUp } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { Search, Filter, LayoutGrid, List, Clock, CheckCircle, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   
   const [projects] = useState([
     {
       id: "1",
+      key: "ECOM",
       name: "E-commerce Platform",
-      description: "Full-stack e-commerce platform with cart, checkout, and payment integration",
       status: "completed" as const,
-      createdAt: "2 days ago",
-      moduleCount: 12,
-      taskCount: 48,
-      completionRate: 100,
+      modules: 12,
+      tasks: 48,
+      completedTasks: 48,
+      lead: "JD",
+      updated: "2 days ago",
     },
     {
       id: "2",
+      key: "SOCIAL",
       name: "Social Media Dashboard",
-      description: "Analytics dashboard for social media engagement metrics and insights",
       status: "processing" as const,
-      createdAt: "5 hours ago",
-      moduleCount: 8,
-      taskCount: 32,
-      completionRate: 65,
+      modules: 8,
+      tasks: 32,
+      completedTasks: 21,
+      lead: "SM",
+      updated: "5 hours ago",
     },
     {
       id: "3",
+      key: "TASK",
       name: "Task Management App",
-      description: "Collaborative task management with real-time updates and notifications",
       status: "completed" as const,
-      createdAt: "1 week ago",
-      moduleCount: 6,
-      taskCount: 24,
-      completionRate: 100,
+      modules: 6,
+      tasks: 24,
+      completedTasks: 24,
+      lead: "AL",
+      updated: "1 week ago",
     },
     {
       id: "4",
+      key: "AIGEN",
       name: "AI Content Generator",
-      description: "AI-powered content generation tool for marketing and social media",
       status: "pending" as const,
-      createdAt: "30 minutes ago",
-      moduleCount: 0,
-      taskCount: 0,
-      completionRate: 0,
+      modules: 0,
+      tasks: 0,
+      completedTasks: 0,
+      lead: "JD",
+      updated: "30 minutes ago",
     },
   ]);
 
-  const stats = [
-    { 
-      label: "Total Projects", 
-      value: "12", 
-      icon: FolderKanban, 
-      trend: "+3 this month",
-      gradient: "from-primary/20 to-primary/5",
-      iconBg: "bg-primary/10 text-primary"
-    },
-    { 
-      label: "Completed", 
-      value: "8", 
-      icon: CheckCircle, 
-      trend: "66% success rate",
-      gradient: "from-chart-3/20 to-chart-3/5",
-      iconBg: "bg-chart-3/10 text-chart-3"
-    },
-    { 
-      label: "In Progress", 
-      value: "4", 
-      icon: Clock, 
-      trend: "Active development",
-      gradient: "from-secondary/20 to-secondary/5",
-      iconBg: "bg-secondary/10 text-secondary"
-    },
-  ];
+  const statusConfig = {
+    completed: { label: "Done", icon: CheckCircle, color: "text-chart-3 bg-chart-3/10" },
+    processing: { label: "In Progress", icon: Clock, color: "text-secondary bg-secondary/10" },
+    pending: { label: "Pending", icon: AlertCircle, color: "text-muted-foreground bg-muted" },
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="glass-strong rounded-lg p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
-              Dashboard
-              <Sparkles className="h-6 w-6 text-primary" />
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              AI-powered project planning and architecture generation
-            </p>
+    <div className="max-w-[1800px] mx-auto">
+      <div className="border-b border-border bg-card px-6 py-4">
+        <Breadcrumbs items={[{ label: "Projects" }]} />
+        <div className="flex items-center justify-between mt-3">
+          <h1 className="text-2xl font-semibold">Projects</h1>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 flex-1 max-w-md">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search projects..."
+                className="pl-9"
+                data-testid="input-search-projects"
+              />
+            </div>
+            <Button variant="outline" size="icon" data-testid="button-filter">
+              <Filter className="h-4 w-4" />
+            </Button>
           </div>
-          <Button 
-            className="gap-2" 
-            data-testid="button-new-project"
-            onClick={() => setLocation("/new")}
-          >
-            <Plus className="h-4 w-4" />
-            New Project
-          </Button>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.label} className="glass relative overflow-hidden">
-              <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} -z-10`} />
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
-                <div className={`h-9 w-9 rounded-lg ${stat.iconBg} flex items-center justify-center`}>
-                  <Icon className="h-4 w-4" />
+          <div className="flex items-center gap-2">
+            <Button 
+              variant={viewMode === "grid" ? "secondary" : "ghost"} 
+              size="icon"
+              onClick={() => setViewMode("grid")}
+              data-testid="button-view-grid"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant={viewMode === "list" ? "secondary" : "ghost"} 
+              size="icon"
+              onClick={() => setViewMode("list")}
+              data-testid="button-view-list"
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {viewMode === "list" ? (
+          <div className="border rounded-lg bg-card">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">Key</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Modules</TableHead>
+                  <TableHead>Tasks</TableHead>
+                  <TableHead>Progress</TableHead>
+                  <TableHead>Lead</TableHead>
+                  <TableHead>Updated</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {projects.map((project) => {
+                  const config = statusConfig[project.status];
+                  const StatusIcon = config.icon;
+                  const progress = project.tasks > 0 ? Math.round((project.completedTasks / project.tasks) * 100) : 0;
+                  
+                  return (
+                    <TableRow 
+                      key={project.id} 
+                      className="cursor-pointer hover-elevate"
+                      onClick={() => setLocation(`/project/${project.id}`)}
+                      data-testid={`row-project-${project.id}`}
+                    >
+                      <TableCell className="font-mono font-semibold text-primary">
+                        {project.key}
+                      </TableCell>
+                      <TableCell className="font-medium">{project.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={config.color}>
+                          <StatusIcon className="h-3 w-3 mr-1" />
+                          {config.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{project.modules}</TableCell>
+                      <TableCell>
+                        <span className="text-muted-foreground">
+                          {project.completedTasks}/{project.tasks}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary transition-all"
+                              style={{ width: `${progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground w-10">
+                            {progress}%
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
+                          {project.lead}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {project.updated}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {projects.map((project) => {
+              const config = statusConfig[project.status];
+              const StatusIcon = config.icon;
+              const progress = project.tasks > 0 ? Math.round((project.completedTasks / project.tasks) * 100) : 0;
+              
+              return (
+                <div
+                  key={project.id}
+                  onClick={() => setLocation(`/project/${project.id}`)}
+                  className="border rounded-lg p-4 bg-card hover-elevate cursor-pointer space-y-3"
+                  data-testid={`card-project-${project.id}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-mono font-semibold text-primary mb-1">
+                        {project.key}
+                      </div>
+                      <h3 className="font-semibold line-clamp-1">{project.name}</h3>
+                    </div>
+                    <Badge variant="outline" className={`${config.color} text-xs`}>
+                      <StatusIcon className="h-2.5 w-2.5 mr-1" />
+                      {config.label}
+                    </Badge>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>{project.completedTasks}/{project.tasks} tasks</span>
+                      <span>{project.modules} modules</span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t text-xs text-muted-foreground">
+                    <span>Lead: {project.lead}</span>
+                    <span>{project.updated}</span>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-bold">{stat.value}</div>
-                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3" />
-                  {stat.trend}
-                </p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Recent Projects</h2>
-          <Button variant="outline" size="sm">
-            View All
-          </Button>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              {...project}
-              onClick={() => setLocation(`/project/${project.id}`)}
-            />
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
