@@ -115,7 +115,7 @@ export default function EnhancedKanbanBoard({ projectId, tasks, onTaskUpdate }: 
                         <div className="flex-1 min-w-0 space-y-2">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-xs font-mono text-primary font-medium">
-                              {task.id}
+                              {task.key}
                             </span>
                             <Button variant="ghost" size="icon" className="h-5 w-5 opacity-0 group-hover:opacity-100">
                               <MoreHorizontal className="h-3 w-3" />
