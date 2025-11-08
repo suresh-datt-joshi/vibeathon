@@ -9,6 +9,9 @@ import TopNav from "@/components/TopNav";
 import Dashboard from "@/pages/Dashboard";
 import ProjectDetail from "@/pages/ProjectDetail";
 import NewProject from "@/pages/NewProject";
+import Settings from "@/pages/Settings";
+import Profile from "@/pages/Profile";
+import Reports from "@/pages/Reports";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -17,6 +20,9 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/project/:id" component={ProjectDetail} />
       <Route path="/new" component={NewProject} />
+      <Route path="/settings" component={Settings} />
+      <Route path="/profile" component={Profile} />
+      <Route path="/reports" component={Reports} />
       <Route component={NotFound} />
     </Switch>
   );

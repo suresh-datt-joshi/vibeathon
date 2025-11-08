@@ -24,12 +24,12 @@ const menuItems = [
   },
   {
     title: "Reports",
-    url: "#",
+    url: "/reports",
     icon: BarChart3,
   },
   {
     title: "Settings",
-    url: "#",
+    url: "/settings",
     icon: Settings,
   },
 ];
