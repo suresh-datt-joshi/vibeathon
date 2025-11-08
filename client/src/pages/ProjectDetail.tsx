@@ -3,31 +3,130 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import EnhancedKanbanBoard from "@/components/EnhancedKanbanBoard";
-import { Share2, Download, Settings, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Share2, Download, Settings, Sparkles, Loader2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useRoute } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+interface Task {
+  id: string;
+  projectId: string;
+  key: string;
+  title: string;
+  description: string | null;
+  type: string;
+  status: string;
+  priority: string;
+  storyPoints: number | null;
+  assignee: string | null;
+  reporter: string;
+  labels: string[] | null;
+  aiGenerated: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface Module {
+  id: string;
+  projectId: string;
+  name: string;
+  layer: string;
+  description: string | null;
+  technologies: string[] | null;
+  dependencies: string[] | null;
+  createdAt: Date;
+}
+
+interface ProjectDetailData {
+  project: {
+    id: string;
+    key: string;
+    name: string;
+    description: string | null;
+    requirements: string;
+    status: string;
+    architecture: any;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+  tasks: Task[];
+  modules: Module[];
+}
 
 export default function ProjectDetail() {
-  const [project] = useState({
-    key: "ECOM",
-    name: "E-commerce Platform",
-    description: "Full-stack e-commerce platform with shopping cart, checkout, and payment integration",
-    status: "completed" as const,
+  const { toast } = useToast();
+  const [, params] = useRoute("/project/:id");
+  const projectId = params?.id;
+
+  const { data, isLoading, error } = useQuery<ProjectDetailData>({
+    queryKey: ["/api/projects", projectId],
+    enabled: !!projectId,
   });
 
-  const [tasks] = useState([
-    { id: "ECOM-1", title: "Set up project structure and initial configuration", type: "story" as const, status: "done" as const, priority: "high" as const, storyPoints: 3, assignee: "JD", aiGenerated: true },
-    { id: "ECOM-2", title: "Design comprehensive database schema for products and orders", type: "story" as const, status: "done" as const, priority: "high" as const, storyPoints: 5, assignee: "SM" },
-    { id: "ECOM-3", title: "Implement product catalog with search and filters", type: "epic" as const, status: "in_progress" as const, priority: "high" as const, storyPoints: 13, assignee: "JD", aiGenerated: true },
-    { id: "ECOM-4", title: "Build shopping cart with add/remove functionality", type: "story" as const, status: "in_progress" as const, priority: "high" as const, storyPoints: 8, assignee: "AL" },
-    { id: "ECOM-5", title: "Create checkout flow with address validation", type: "story" as const, status: "todo" as const, priority: "medium" as const, storyPoints: 8, aiGenerated: true },
-    { id: "ECOM-6", title: "Integrate Stripe payment gateway", type: "epic" as const, status: "todo" as const, priority: "high" as const, storyPoints: 13, aiGenerated: true },
-    { id: "ECOM-7", title: "Add product search with Elasticsearch", type: "subtask" as const, status: "review" as const, priority: "medium" as const, storyPoints: 5, assignee: "SM" },
-    { id: "ECOM-8", title: "Implement admin dashboard analytics", type: "story" as const, status: "backlog" as const, priority: "low" as const, storyPoints: 8 },
-    { id: "ECOM-9", title: "Add user authentication and authorization", type: "epic" as const, status: "done" as const, priority: "high" as const, storyPoints: 13, assignee: "JD", aiGenerated: true },
-    { id: "ECOM-10", title: "Build order history page", type: "story" as const, status: "todo" as const, priority: "medium" as const, storyPoints: 5, aiGenerated: true },
-  ]);
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ taskId, updates }: { taskId: string; updates: Partial<Task> }) => {
+      const response = await apiRequest("PUT", `/api/projects/${projectId}/tasks/${taskId}`, updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      toast({
+        title: "Success",
+        description: "Task updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update task",
+        variant: "destructive",
+      });
+    },
+  });
 
+  if (isLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Failed to load project</p>
+          <Button onClick={() => window.location.href = "/"} className="mt-4">
+            Back to Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const { project, tasks, modules } = data;
   const completedTasks = tasks.filter(t => t.status === "done").length;
+
+  const handleTaskUpdate = (task: any) => {
+    updateTaskMutation.mutate({
+      taskId: task.id,
+      updates: {
+        status: task.status,
+        priority: task.priority,
+        assignee: task.assignee,
+      },
+    });
+  };
+
+  const groupedModules = modules.reduce((acc, module) => {
+    if (!acc[module.layer]) {
+      acc[module.layer] = [];
+    }
+    acc[module.layer].push(module);
+    return acc;
+  }, {} as Record<string, Module[]>);
 
   return (
     <div className="h-full flex flex-col">
@@ -102,7 +201,11 @@ export default function ProjectDetail() {
 
         <div className="flex-1 overflow-auto">
           <TabsContent value="board" className="m-0 p-6 h-full">
-            <EnhancedKanbanBoard projectId="1" tasks={tasks} />
+            <EnhancedKanbanBoard 
+              projectId={project.id} 
+              tasks={tasks} 
+              onTaskUpdate={handleTaskUpdate}
+            />
           </TabsContent>
 
           <TabsContent value="timeline" className="m-0 p-6">
@@ -119,28 +222,55 @@ export default function ProjectDetail() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {["Frontend", "Backend", "Database"].map((layer) => (
-                  <div key={layer} className="border rounded-lg p-4 space-y-3">
-                    <h3 className="font-semibold text-sm">{layer}</h3>
-                    <div className="space-y-2">
-                      <div className="text-xs p-2 border rounded bg-card">
-                        <div className="font-medium">Module 1</div>
-                        <div className="text-muted-foreground">Description</div>
-                      </div>
-                      <div className="text-xs p-2 border rounded bg-card">
-                        <div className="font-medium">Module 2</div>
-                        <div className="text-muted-foreground">Description</div>
+                {["frontend", "backend", "database"].map((layer) => {
+                  const layerModules = groupedModules[layer] || [];
+                  return (
+                    <div key={layer} className="border rounded-lg p-4 space-y-3">
+                      <h3 className="font-semibold text-sm capitalize">{layer}</h3>
+                      <div className="space-y-2">
+                        {layerModules.length > 0 ? (
+                          layerModules.map((module) => (
+                            <div key={module.id} className="text-xs p-3 border rounded bg-card">
+                              <div className="font-medium mb-1">{module.name}</div>
+                              {module.description && (
+                                <div className="text-muted-foreground mb-2">{module.description}</div>
+                              )}
+                              {module.technologies && module.technologies.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                  {module.technologies.map((tech) => (
+                                    <Badge key={tech} variant="secondary" className="text-[10px] px-1 py-0">
+                                      {tech}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-xs p-2 border rounded bg-muted text-muted-foreground text-center">
+                            No modules
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </TabsContent>
 
           <TabsContent value="export" className="m-0 p-6">
-            <div className="flex items-center justify-center h-64 border border-dashed rounded-lg">
-              <p className="text-muted-foreground">JSON export view</p>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-semibold">JSON Export</h3>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-1" />
+                  Download JSON
+                </Button>
+              </div>
+              <pre className="p-4 border rounded-lg bg-muted text-xs overflow-auto max-h-[600px]">
+                {JSON.stringify({ project, tasks, modules }, null, 2)}
+              </pre>
             </div>
           </TabsContent>
         </div>

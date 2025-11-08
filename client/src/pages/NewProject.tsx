@@ -8,14 +8,21 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 import AIProcessingIndicator from "@/components/AIProcessingIndicator";
 import { Sparkles, Zap, Info } from "lucide-react";
 import { useState } from "react";
+import { useLocation } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function NewProject() {
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [projectName, setProjectName] = useState("");
   const [projectKey, setProjectKey] = useState("");
   const [requirements, setRequirements] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState("");
+  const [projectId, setProjectId] = useState<string | null>(null);
 
   const stages = [
     "Analyzing requirements...",
@@ -24,14 +31,31 @@ export default function NewProject() {
     "Breaking down into tasks...",
   ];
 
-  const handleGenerate = () => {
-    setIsProcessing(true);
-    setProgress(0);
-    setStage(stages[0]);
-    
+  const createProjectMutation = useMutation({
+    mutationFn: async (data: { name: string; key: string; requirements: string; description: string }) => {
+      const response = await apiRequest("POST", "/api/projects", data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setProjectId(data.project.id);
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      
+      simulateProgress();
+    },
+    onError: (error) => {
+      setIsProcessing(false);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create project",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const simulateProgress = () => {
     const interval = setInterval(() => {
       setProgress((prev) => {
-        const newProgress = prev + 5;
+        const newProgress = prev + 2;
         const stageIndex = Math.floor(newProgress / 25);
         if (stageIndex < stages.length) {
           setStage(stages[stageIndex]);
@@ -41,13 +65,36 @@ export default function NewProject() {
           clearInterval(interval);
           setTimeout(() => {
             setIsProcessing(false);
-            console.log("Generation complete!");
+            toast({
+              title: "Success",
+              description: "Project created successfully with AI-generated architecture!",
+            });
+            if (projectId) {
+              setLocation(`/project/${projectId}`);
+            }
           }, 500);
           return 100;
         }
         return newProgress;
       });
-    }, 150);
+    }, 300);
+  };
+
+  const handleGenerate = () => {
+    setIsProcessing(true);
+    setProgress(0);
+    setStage(stages[0]);
+    
+    createProjectMutation.mutate({
+      name: projectName,
+      key: projectKey.toUpperCase(),
+      requirements,
+      description: `AI-generated project for: ${projectName}`,
+    });
+  };
+
+  const handleCancel = () => {
+    setLocation("/");
   };
 
   return (
@@ -183,7 +230,12 @@ export default function NewProject() {
         </Card>
 
         <div className="flex items-center justify-between pt-4 border-t">
-          <Button variant="outline" data-testid="button-cancel">
+          <Button 
+            variant="outline" 
+            onClick={handleCancel}
+            disabled={isProcessing}
+            data-testid="button-cancel"
+          >
             Cancel
           </Button>
           <Button
@@ -193,7 +245,7 @@ export default function NewProject() {
             className="gap-2"
           >
             <Zap className="h-4 w-4" />
-            Generate Project Architecture
+            {isProcessing ? "Generating..." : "Generate Project Architecture"}
           </Button>
         </div>
       </div>

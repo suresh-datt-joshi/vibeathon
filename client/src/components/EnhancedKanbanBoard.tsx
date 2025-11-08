@@ -21,9 +21,10 @@ interface Task {
 interface EnhancedKanbanBoardProps {
   projectId: string;
   tasks: Task[];
+  onTaskUpdate?: (task: any) => void;
 }
 
-export default function EnhancedKanbanBoard({ projectId, tasks }: EnhancedKanbanBoardProps) {
+export default function EnhancedKanbanBoard({ projectId, tasks, onTaskUpdate }: EnhancedKanbanBoardProps) {
   const [selectedTask, setSelectedTask] = useState<TaskDetailType | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -178,6 +179,9 @@ export default function EnhancedKanbanBoard({ projectId, tasks }: EnhancedKanban
         onOpenChange={setIsModalOpen}
         onUpdateTask={(updatedTask) => {
           setSelectedTask(updatedTask);
+          if (onTaskUpdate) {
+            onTaskUpdate(updatedTask);
+          }
         }}
       />
     </div>

@@ -2,9 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { Search, Filter, LayoutGrid, List, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Search, Filter, LayoutGrid, List, Clock, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
 import {
   Table,
   TableBody,
@@ -14,56 +16,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+interface ProjectWithCounts {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  requirements: string;
+  status: string;
+  architecture: any;
+  createdAt: Date;
+  updatedAt: Date;
+  tasks: number;
+  completedTasks: number;
+  modules: number;
+}
+
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   
-  const [projects] = useState([
-    {
-      id: "1",
-      key: "ECOM",
-      name: "E-commerce Platform",
-      status: "completed" as const,
-      modules: 12,
-      tasks: 48,
-      completedTasks: 48,
-      lead: "JD",
-      updated: "2 days ago",
-    },
-    {
-      id: "2",
-      key: "SOCIAL",
-      name: "Social Media Dashboard",
-      status: "processing" as const,
-      modules: 8,
-      tasks: 32,
-      completedTasks: 21,
-      lead: "SM",
-      updated: "5 hours ago",
-    },
-    {
-      id: "3",
-      key: "TASK",
-      name: "Task Management App",
-      status: "completed" as const,
-      modules: 6,
-      tasks: 24,
-      completedTasks: 24,
-      lead: "AL",
-      updated: "1 week ago",
-    },
-    {
-      id: "4",
-      key: "AIGEN",
-      name: "AI Content Generator",
-      status: "pending" as const,
-      modules: 0,
-      tasks: 0,
-      completedTasks: 0,
-      lead: "JD",
-      updated: "30 minutes ago",
-    },
-  ]);
+  const { data: projects = [], isLoading } = useQuery<ProjectWithCounts[]>({
+    queryKey: ["/api/projects"],
+  });
 
   const statusConfig = {
     completed: { 
@@ -128,7 +102,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {viewMode === "list" ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-64 border border-dashed rounded-lg">
+            <p className="text-muted-foreground mb-4">No projects yet. Create your first AI-powered project!</p>
+            <Button onClick={() => setLocation("/new")}>Create Project</Button>
+          </div>
+        ) : viewMode === "list" ? (
           <div className="border rounded-lg bg-card">
             <Table>
               <TableHeader>
@@ -145,7 +128,8 @@ export default function Dashboard() {
               </TableHeader>
               <TableBody>
                 {projects.map((project) => {
-                  const config = statusConfig[project.status];
+                  const statusKey = project.status as keyof typeof statusConfig;
+                  const config = statusConfig[statusKey] || statusConfig.pending;
                   const StatusIcon = config.icon;
                   const progress = project.tasks > 0 ? Math.round((project.completedTasks / project.tasks) * 100) : 0;
                   
@@ -187,11 +171,11 @@ export default function Dashboard() {
                       </TableCell>
                       <TableCell>
                         <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
-                          {project.lead}
+                          AI
                         </div>
                       </TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {project.updated}
+                        {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
                       </TableCell>
                     </TableRow>
                   );
@@ -202,7 +186,8 @@ export default function Dashboard() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {projects.map((project) => {
-              const config = statusConfig[project.status];
+              const statusKey = project.status as keyof typeof statusConfig;
+              const config = statusConfig[statusKey] || statusConfig.pending;
               const StatusIcon = config.icon;
               const progress = project.tasks > 0 ? Math.round((project.completedTasks / project.tasks) * 100) : 0;
               
@@ -240,8 +225,8 @@ export default function Dashboard() {
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t text-xs text-muted-foreground">
-                    <span>Lead: {project.lead}</span>
-                    <span>{project.updated}</span>
+                    <span>AI-generated</span>
+                    <span>{formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}</span>
                   </div>
                 </div>
               );
