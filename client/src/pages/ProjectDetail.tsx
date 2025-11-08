@@ -45,7 +45,7 @@ export default function ProjectDetail() {
               </div>
               <h1 className="text-2xl font-semibold">{project.name}</h1>
             </div>
-            <Badge variant="outline" className="bg-chart-3/10 text-chart-3">
+            <Badge variant="outline" className="bg-[hsl(var(--lozenge-done-bg))] text-[hsl(var(--lozenge-done))] border-[hsl(var(--lozenge-done))]">
               {completedTasks}/{tasks.length} Done
             </Badge>
           </div>

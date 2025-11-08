@@ -66,9 +66,21 @@ export default function Dashboard() {
   ]);
 
   const statusConfig = {
-    completed: { label: "Done", icon: CheckCircle, color: "text-chart-3 bg-chart-3/10" },
-    processing: { label: "In Progress", icon: Clock, color: "text-secondary bg-secondary/10" },
-    pending: { label: "Pending", icon: AlertCircle, color: "text-muted-foreground bg-muted" },
+    completed: { 
+      label: "Done", 
+      icon: CheckCircle, 
+      className: "bg-[hsl(var(--lozenge-done-bg))] text-[hsl(var(--lozenge-done))] border-[hsl(var(--lozenge-done))]"
+    },
+    processing: { 
+      label: "In Progress", 
+      icon: Clock, 
+      className: "bg-[hsl(var(--lozenge-in-progress-bg))] text-[hsl(var(--lozenge-in-progress))] border-[hsl(var(--lozenge-in-progress))]"
+    },
+    pending: { 
+      label: "To Do", 
+      icon: AlertCircle, 
+      className: "bg-[hsl(var(--lozenge-todo-bg))] text-[hsl(var(--lozenge-todo))] border-[hsl(var(--lozenge-todo))]"
+    },
   };
 
   return (
@@ -149,7 +161,7 @@ export default function Dashboard() {
                       </TableCell>
                       <TableCell className="font-medium">{project.name}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={config.color}>
+                        <Badge variant="outline" className={config.className}>
                           <StatusIcon className="h-3 w-3 mr-1" />
                           {config.label}
                         </Badge>
@@ -208,7 +220,7 @@ export default function Dashboard() {
                       </div>
                       <h3 className="font-semibold line-clamp-1">{project.name}</h3>
                     </div>
-                    <Badge variant="outline" className={`${config.color} text-xs`}>
+                    <Badge variant="outline" className={`${config.className} text-xs`}>
                       <StatusIcon className="h-2.5 w-2.5 mr-1" />
                       {config.label}
                     </Badge>

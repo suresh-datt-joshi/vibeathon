@@ -35,16 +35,25 @@ export default function EnhancedKanbanBoard({ projectId, tasks }: EnhancedKanban
   const getColumnTasks = (status: Task["status"]) => 
     tasks.filter((task) => task.status === status);
 
-  const typeConfig: Record<Task["type"], { color: string; label: string }> = {
-    epic: { color: "bg-destructive/10 text-destructive", label: "Epic" },
-    story: { color: "bg-primary/10 text-primary", label: "Story" },
-    subtask: { color: "bg-accent/10 text-accent", label: "Subtask" },
+  const typeConfig: Record<Task["type"], { className: string; label: string }> = {
+    epic: { 
+      className: "bg-[hsl(var(--lozenge-blocked-bg))] text-[hsl(var(--lozenge-blocked))] border-[hsl(var(--lozenge-blocked))]", 
+      label: "Epic" 
+    },
+    story: { 
+      className: "bg-[hsl(var(--lozenge-todo-bg))] text-[hsl(var(--lozenge-todo))] border-[hsl(var(--lozenge-todo))]", 
+      label: "Story" 
+    },
+    subtask: { 
+      className: "bg-[hsl(var(--lozenge-low-bg))] text-[hsl(var(--lozenge-low))] border-[hsl(var(--lozenge-low))]", 
+      label: "Subtask" 
+    },
   };
 
   const priorityColors: Record<string, string> = {
-    low: "text-muted-foreground",
-    medium: "text-secondary",
-    high: "text-destructive",
+    low: "text-[hsl(var(--lozenge-low))]",
+    medium: "text-[hsl(var(--lozenge-in-progress))]",
+    high: "text-[hsl(var(--lozenge-blocked))]",
   };
 
   return (
@@ -102,14 +111,14 @@ export default function EnhancedKanbanBoard({ projectId, tasks }: EnhancedKanban
                         <div className="flex items-center gap-1">
                           <Badge 
                             variant="outline" 
-                            className={`text-xs h-5 px-1.5 ${typeConfig[task.type].color}`}
+                            className={`text-xs h-5 px-1.5 ${typeConfig[task.type].className}`}
                           >
                             {typeConfig[task.type].label}
                           </Badge>
                           {task.aiGenerated && (
                             <Badge 
                               variant="outline" 
-                              className="text-xs h-5 px-1.5 bg-chart-3/10 text-chart-3"
+                              className="text-xs h-5 px-1.5 bg-[hsl(var(--lozenge-done-bg))] text-[hsl(var(--lozenge-done))] border-[hsl(var(--lozenge-done))]"
                             >
                               AI
                             </Badge>
