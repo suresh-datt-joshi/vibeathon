@@ -3,22 +3,20 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { 
-  X, 
   User, 
   Calendar, 
   Tag, 
   Clock,
   MessageSquare,
-  Paperclip,
   Flag,
-  MoreHorizontal,
   CheckCircle2,
 } from "lucide-react";
 import { statusLozenges, priorityLozenges, TaskStatus, TaskPriority } from "@/lib/statusLozenges";
@@ -89,28 +87,20 @@ export default function TaskDetailModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="max-w-5xl max-h-[90vh] p-0 gap-0 overflow-hidden"
+        className="max-w-5xl max-h-[90vh] p-0 gap-0 overflow-hidden shadow-sm"
         data-testid="dialog-task-detail"
       >
-        <DialogHeader className="border-b border-border p-4 flex-shrink-0">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Badge variant="outline" className={`${typeConfig[task.type].className} text-xs`}>
-                {typeConfig[task.type].label}
-              </Badge>
-              <span className="font-mono text-sm text-muted-foreground" data-testid="text-task-key">
-                {task.key}
-              </span>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => onOpenChange(false)}
-              data-testid="button-close-modal"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+        <DialogHeader className="border-b border-border p-4 pr-12 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className={`${typeConfig[task.type].className} text-xs`}>
+              {typeConfig[task.type].label}
+            </Badge>
+            <span className="font-mono text-sm text-muted-foreground" data-testid="text-task-key">
+              {task.key}
+            </span>
           </div>
+          <DialogTitle className="sr-only">{task.title}</DialogTitle>
+          <DialogDescription className="sr-only">Task details and metadata</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-1 overflow-hidden">
