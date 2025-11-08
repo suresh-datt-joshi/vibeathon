@@ -5,7 +5,8 @@ export default function AIProcessingIndicatorExample() {
     <div className="p-4 max-w-md">
       <AIProcessingIndicator 
         stage="Analyzing requirements and generating architecture..." 
-        progress={65} 
+        progress={65}
+        substage="Processing modules"
       />
     </div>
   );

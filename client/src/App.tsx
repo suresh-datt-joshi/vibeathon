@@ -34,8 +34,8 @@ export default function App() {
         <SidebarProvider style={style as React.CSSProperties}>
           <div className="flex h-screen w-full">
             <AppSidebar />
-            <div className="flex flex-col flex-1">
-              <header className="flex items-center justify-between p-4 border-b border-border">
+            <div className="flex flex-col flex-1 min-w-0">
+              <header className="glass-strong border-b border-border/50 flex items-center justify-between p-4 flex-shrink-0">
                 <SidebarTrigger data-testid="button-sidebar-toggle" />
                 <ThemeToggle />
               </header>
