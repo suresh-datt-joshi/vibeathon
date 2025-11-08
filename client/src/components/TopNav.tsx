@@ -31,7 +31,7 @@ export default function TopNav() {
       description: "You have been signed out of your session.",
     });
 
-    setLocation("/");
+    setLocation("/projects");
   }, [setLocation, toast]);
 
   return (

@@ -46,11 +46,6 @@ AI-powered project planning and architecture engine that transforms ideas into c
 
 ## Features Overview
 
-### Dashboard
-- View all projects at a glance
-- Quick access to recent projects
-- Create new projects with AI assistance
-
 ### Project Planning
 - Input project requirements
 - AI generates comprehensive specifications

@@ -77,6 +77,7 @@ export default function ProjectDetail() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
       toast({
         title: "Success",
         description: "Task updated successfully",
@@ -100,8 +101,8 @@ export default function ProjectDetail() {
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">Failed to load project</p>
-          <Button onClick={() => window.location.href = "/"} className="mt-4">
-            Back to Dashboard
+          <Button onClick={() => (window.location.href = "/projects")} className="mt-4">
+            Back to Projects
           </Button>
         </div>
       </div>

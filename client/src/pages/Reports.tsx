@@ -37,9 +37,34 @@ interface ReportsSummary {
   };
 }
 
+interface ProjectWithCounts {
+  id: string;
+  name: string;
+  key: string;
+  status: string;
+  tasks: number;
+  completedTasks: number;
+  modules: number;
+}
+
 export default function Reports() {
   const { data: summary, isLoading } = useQuery<ReportsSummary>({
     queryKey: ["/api/reports/summary"],
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    staleTime: 0,
+  });
+
+  const {
+    data: projects,
+    isLoading: isProjectsLoading,
+  } = useQuery<ProjectWithCounts[]>({
+    queryKey: ["/api/projects"],
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
   });
 
   const metrics = useMemo(() => {
@@ -91,6 +116,29 @@ export default function Reports() {
       blockedProjectsLabel,
     };
   }, [summary]);
+
+  const teamPerformance = useMemo(() => {
+    if (!projects || projects.length === 0) {
+      return [];
+    }
+
+    return projects.map((project) => {
+      const completionRate =
+        project.tasks === 0
+          ? 0
+          : Math.round((project.completedTasks / project.tasks) * 100);
+
+      return {
+        id: project.id,
+        name: project.name,
+        key: project.key,
+        tasks: project.tasks,
+        completedTasks: project.completedTasks,
+        status: project.status,
+        completionRate,
+      };
+    });
+  }, [projects]);
 
   return (
     <div className="h-full overflow-auto">
@@ -252,7 +300,7 @@ export default function Reports() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
-                        <p className="text-sm font-medium">Analytics Dashboard</p>
+                        <p className="text-sm font-medium">Analytics Suite</p>
                         <p className="text-xs text-muted-foreground">DASH</p>
                       </div>
                       <Badge variant="outline" className="bg-[hsl(var(--lozenge-done-bg))] text-[hsl(var(--lozenge-done))] border-[hsl(var(--lozenge-done))]">
@@ -271,23 +319,65 @@ export default function Reports() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
-                          JD
+                  {isProjectsLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between gap-3"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="h-8 w-8 rounded-full" />
+                            <div className="space-y-2">
+                              <Skeleton className="h-4 w-32" />
+                              <Skeleton className="h-3 w-24" />
+                            </div>
+                          </div>
+                          <Skeleton className="h-5 w-12" />
                         </div>
-                        <div>
-                          <p className="text-sm font-medium">John Doe</p>
-                          <p className="text-xs text-muted-foreground">87 tasks</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                        <span className="text-sm font-medium">92%</span>
-                      </div>
+                      ))}
                     </div>
-                  </div>
+                  ) : teamPerformance.length > 0 ? (
+                    <div className="space-y-4">
+                      {teamPerformance.map((item) => {
+                        const trendColor =
+                          item.completionRate >= 80
+                            ? "text-green-600"
+                            : item.completionRate >= 50
+                            ? "text-amber-500"
+                            : "text-destructive";
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between gap-3"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                                {item.key.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium">{item.name}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {item.completedTasks}/{item.tasks} tasks complete
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className={`h-4 w-4 ${trendColor}`} />
+                              <span className="text-sm font-medium">
+                                {item.completionRate}%
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No project performance data available yet.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

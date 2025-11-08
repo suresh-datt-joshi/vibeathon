@@ -1,486 +1,572 @@
-import { useCallback, useMemo, useState } from "react";
-import { useLocation } from "wouter";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { format, formatDistanceToNow } from "date-fns";
+import PageContainer from "@/components/PageContainer";
 import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { formatDistanceToNow } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import Breadcrumbs from "@/components/Breadcrumbs";
-import {
-  Search,
-  Filter,
-  LayoutGrid,
-  List,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Trash2,
-} from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+  Activity,
+  AlertTriangle,
+  BarChart3,
+  Calendar,
+  ClipboardList,
+  Flame,
+  Gauge,
+  Rocket,
+  Sparkles,
+  Users,
+} from "lucide-react";
 
-interface ProjectWithCounts {
+interface DashboardOverview {
+  totalProjects: number;
+  totalTasks: number;
+  completedTasks: number;
+  activeTasks: number;
+  blockedTasks: number;
+  completionRate: number;
+  activeProjects: number;
+}
+
+interface SpotlightModule {
+  id: string;
+  name: string;
+  layer: string;
+}
+
+interface DashboardSpotlight {
   id: string;
   key: string;
   name: string;
-  description: string | null;
-  requirements: string;
   status: string;
-  architecture: any;
-  createdAt: Date;
-  updatedAt: Date;
-  tasks: number;
-  completedTasks: number;
-  modules: number;
+  progress: number;
+  summary: string | null;
+  modules: SpotlightModule[];
+  nextMilestone: string | null;
+  updatedAt: string;
 }
 
-export default function Dashboard() {
-  const [, setLocation] = useLocation();
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
-  const [searchTerm, setSearchTerm] = useState("");
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+interface WorkloadBreakdown {
+  totalStoryPoints: number;
+  activeStoryPoints: number;
+  capacityStoryPoints: number;
+  utilization: number;
+  statusBreakdown: Record<
+    string,
+    { count: number; storyPoints: number }
+  >;
+}
 
-  const { data: projects = [], isLoading } = useQuery<ProjectWithCounts[]>({
-    queryKey: ["/api/projects"],
+interface UpcomingDeadline {
+  id: string;
+  title: string;
+  projectId: string;
+  status: string;
+  storyPoints: number;
+  dueDate: string;
+  priority: string;
+}
+
+interface ActivityItem {
+  type: "project" | "task";
+  id: string;
+  title: string;
+  status: string;
+  timestamp: string;
+  description: string;
+  projectId?: string;
+}
+
+interface DashboardResponse {
+  overview: DashboardOverview;
+  spotlight: DashboardSpotlight | null;
+  workload: WorkloadBreakdown;
+  upcomingDeadlines: UpcomingDeadline[];
+  insights: string[];
+  activityFeed: ActivityItem[];
+}
+
+function useDashboardData() {
+  return useQuery<DashboardResponse>({
+    queryKey: ["/api/dashboard"],
+    refetchInterval: 15000,
+    refetchIntervalInBackground: true,
   });
-
-  const deleteProject = useMutation({
-    mutationFn: async (projectId: string) => {
-      const response = await fetch(`/api/projects/${projectId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => null);
-        throw new Error(error?.error || "Failed to delete project");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
-      toast({
-        title: "Project deleted",
-        description: "The project has been removed from your workspace.",
-      });
-    },
-    onError: (error: unknown) => {
-      toast({
-        title: "Unable to delete project",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Please try again in a moment.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleDeleteProject = useCallback(
-    (projectId: string) => {
-      const confirmed = window.confirm(
-        "Delete this project? All generated tasks and modules will be removed."
-      );
-
-      if (!confirmed) {
-        return;
-      }
-
-      deleteProject.mutate(projectId);
-    },
-    [deleteProject]
-  );
-
-  const filteredProjects = useMemo(() => {
-    const term = searchTerm.trim().toLowerCase();
-    if (!term) {
-      return projects;
-    }
-
-    return projects.filter((project) => {
-      const fields = [
-        project.name,
-        project.key,
-        project.description ?? "",
-        project.requirements ?? "",
-      ];
-
-      return fields.some((field) =>
-        field.toLowerCase().includes(term)
-      );
-    });
-  }, [projects, searchTerm]);
-
-  const statusConfig = {
-    completed: {
-      label: "Done",
-      icon: CheckCircle,
-      className: "bg-[hsl(var(--lozenge-done-bg))] text-[hsl(var(--lozenge-done))] border-[hsl(var(--lozenge-done))]"
-    },
-    processing: {
-      label: "In Progress",
-      icon: Clock,
-      className: "bg-[hsl(var(--lozenge-in-progress-bg))] text-[hsl(var(--lozenge-in-progress))] border-[hsl(var(--lozenge-in-progress))]"
-    },
-    pending: {
-      label: "To Do",
-      icon: AlertCircle,
-      className: "bg-[hsl(var(--lozenge-todo-bg))] text-[hsl(var(--lozenge-todo))] border-[hsl(var(--lozenge-todo))]"
-    },
-  };
-
-  return (
-    <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="border-b border-border bg-card py-6 px-6 sm:px-8 rounded-b-lg">
-        <div className="flex flex-col gap-4">
-          <Breadcrumbs items={[{ label: "Dashboard" }]} />
-          <h1 className="text-3xl font-semibold tracking-tight">Projects</h1>
-        </div>
-      </div>
-
-      <div className="py-8 space-y-6">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2 flex-1 max-w-md">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search projects..."
-                className="pl-9"
-                data-testid="input-search-projects"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-            </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    data-testid="button-filter"
-                    disabled
-                  >
-                    <Filter className="h-4 w-4" />
-                  </Button>
-                </span>
-              </TooltipTrigger>
-              <TooltipContent sideOffset={6}>
-                Advanced filters coming soon
-              </TooltipContent>
-            </Tooltip>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant={viewMode === "grid" ? "secondary" : "ghost"}
-              size="icon"
-              onClick={() => setViewMode("grid")}
-              data-testid="button-view-grid"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "list" ? "secondary" : "ghost"}
-              size="icon"
-              onClick={() => setViewMode("list")}
-              data-testid="button-view-list"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {isLoading ? (
-          viewMode === "list" ? (
-            <ProjectTableSkeleton />
-          ) : (
-            <ProjectGridSkeleton />
-          )
-        ) : projects.length === 0 ? (
-          <EmptyProjectsState onCreate={() => setLocation("/new")} />
-        ) : filteredProjects.length === 0 ? (
-          <NoResultsState onReset={() => setSearchTerm("")} />
-        ) : viewMode === "list" ? (
-          <div className="border rounded-lg bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Key</TableHead>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Modules</TableHead>
-                  <TableHead>Tasks</TableHead>
-                  <TableHead>Progress</TableHead>
-                  <TableHead>Lead</TableHead>
-                  <TableHead>Updated</TableHead>
-                  <TableHead className="w-[60px] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProjects.map((project) => {
-                  const statusKey = project.status as keyof typeof statusConfig;
-                  const config = statusConfig[statusKey] || statusConfig.pending;
-                  const StatusIcon = config.icon;
-                  const progress = project.tasks > 0 ? Math.round((project.completedTasks / project.tasks) * 100) : 0;
-
-                  return (
-                    <TableRow
-                      key={project.id}
-                      className="cursor-pointer hover-elevate"
-                      onClick={() => setLocation(`/project/${project.id}`)}
-                      data-testid={`row-project-${project.id}`}
-                    >
-                      <TableCell className="font-mono font-semibold text-primary">
-                        {project.key}
-                      </TableCell>
-                      <TableCell className="font-medium">{project.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={config.className}>
-                          <StatusIcon className="h-3 w-3 mr-1" />
-                          {config.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">{project.modules}</TableCell>
-                      <TableCell>
-                        <span className="text-muted-foreground">
-                          {project.completedTasks}/{project.tasks}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-24 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary transition-all"
-                              style={{ width: `${progress}%` }}
-                            />
-                          </div>
-                          <span className="text-xs text-muted-foreground w-10">
-                            {progress}%
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium">
-                          AI
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          data-testid={`button-delete-project-${project.id}`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleDeleteProject(project.id);
-                          }}
-                          disabled={deleteProject.isPending}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredProjects.map((project) => {
-              const statusKey = project.status as keyof typeof statusConfig;
-              const config = statusConfig[statusKey] || statusConfig.pending;
-              const StatusIcon = config.icon;
-              const progress = project.tasks > 0 ? Math.round((project.completedTasks / project.tasks) * 100) : 0;
-
-              return (
-                <div
-                  key={project.id}
-                  onClick={() => setLocation(`/project/${project.id}`)}
-                  className="border rounded-lg p-4 bg-card hover-elevate cursor-pointer space-y-3"
-                  data-testid={`card-project-${project.id}`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="text-xs font-mono font-semibold text-primary mb-1">
-                        {project.key}
-                      </div>
-                      <h3 className="font-semibold line-clamp-1">{project.name}</h3>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Badge variant="outline" className={cn(config.className, "text-xs")}>
-                        <StatusIcon className="h-2.5 w-2.5 mr-1" />
-                        {config.label}
-                      </Badge>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        data-testid={`card-delete-project-${project.id}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeleteProject(project.id);
-                        }}
-                        disabled={deleteProject.isPending}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-muted-foreground">
-                      <span>{project.completedTasks}/{project.tasks} tasks</span>
-                      <span>{project.modules} modules</span>
-                    </div>
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-primary transition-all"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-2 border-t text-xs text-muted-foreground">
-                    <span>AI-generated</span>
-                    <span>{formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
 }
 
-function ProjectTableSkeleton() {
+function OverviewSkeleton() {
   return (
-    <div className="border rounded-lg bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[100px]">
-              <Skeleton className="h-4 w-12" />
-            </TableHead>
-            <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-            <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-            <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-            <TableHead><Skeleton className="h-4 w-16" /></TableHead>
-            <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-            <TableHead><Skeleton className="h-4 w-12" /></TableHead>
-            <TableHead><Skeleton className="h-4 w-20" /></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {[...Array(4)].map((_, index) => (
-            <TableRow key={index}>
-              <TableCell>
-                <Skeleton className="h-4 w-14" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-32" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-6 w-24 rounded-full" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-12" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-16" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-28" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-6 w-6 rounded-full" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-24" />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
-function ProjectGridSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {[...Array(8)].map((_, index) => (
-        <div key={index} className="border rounded-lg p-4 bg-card space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <Skeleton className="h-3 w-16 mb-2" />
-              <Skeleton className="h-5 w-36" />
-            </div>
-            <Skeleton className="h-6 w-20 rounded-full" />
-          </div>
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-2 w-full rounded-full" />
-          </div>
-          <div className="flex items-center justify-between pt-2 border-t">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-3 w-24" />
-          </div>
-        </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <Card key={index}>
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-6 rounded-full" />
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Skeleton className="h-8 w-16" />
+            <Skeleton className="h-3 w-28" />
+          </CardContent>
+        </Card>
       ))}
     </div>
   );
 }
 
-function EmptyProjectsState({ onCreate }: { onCreate: () => void }) {
+export default function Dashboard() {
+  const { data, isLoading, isError, refetch, isFetching } =
+    useDashboardData();
+
+  const overviewCards = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+
+    return [
+      {
+        title: "Total Projects",
+        value: data.overview.totalProjects,
+        helpText: `${data.overview.activeProjects} active right now`,
+        icon: Rocket,
+      },
+      {
+        title: "Active Tasks",
+        value: data.overview.activeTasks,
+        helpText: `${data.overview.blockedTasks} blocked`,
+        icon: ClipboardList,
+      },
+      {
+        title: "Completion Rate",
+        value: `${data.overview.completionRate}%`,
+        helpText: `${data.overview.completedTasks} tasks done`,
+        icon: Gauge,
+      },
+      {
+        title: "Total Work Items",
+        value: data.overview.totalTasks,
+        helpText: "Across all projects",
+        icon: BarChart3,
+      },
+    ];
+  }, [data]);
+
   return (
-    <div className="flex flex-col items-center justify-center h-64 border border-dashed rounded-lg text-center space-y-4 bg-muted/30">
-      <div>
-        <p className="text-lg font-semibold">No projects yet</p>
-        <p className="text-sm text-muted-foreground">
-          Kick off your first AI-powered project to generate architecture, tasks, and more.
-        </p>
-      </div>
-      <Button onClick={onCreate} data-testid="button-empty-create">
-        Create Project
-      </Button>
+    <div className="h-full overflow-auto">
+      <PageContainer className="py-8 space-y-8">
+        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+            <p className="text-muted-foreground mt-2">
+              Real-time pulse of your AI-augmented project portfolio.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => refetch()}
+              disabled={isFetching}
+            >
+              Refresh
+            </Button>
+          </div>
+        </header>
+
+        {isError ? (
+          <Card className="border-destructive bg-destructive/5">
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                <CardTitle>Unable to load dashboard data</CardTitle>
+              </div>
+              <Button variant="outline" onClick={() => refetch()}>
+                Try again
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                We couldn&apos;t reach the dashboard service. Check your
+                connection and try again in a moment.
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {isLoading ? (
+          <OverviewSkeleton />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {overviewCards.map((card) => (
+              <Card key={card.title}>
+                <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {card.title}
+                  </CardTitle>
+                  <card.icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-semibold">
+                    {card.value}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {card.helpText}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <Card className="col-span-1 lg:col-span-3">
+            <CardHeader className="flex flex-row items-start justify-between gap-4">
+              <div className="space-y-1">
+                <CardTitle>Active Project Spotlight</CardTitle>
+                <CardDescription>
+                  The project driving the highest amount of active work.
+                </CardDescription>
+              </div>
+              <Badge variant="outline" className="gap-1">
+                <Flame className="h-3 w-3" />
+                Live focus
+              </Badge>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-2 w-full rounded-full" />
+                  <Skeleton className="h-4 w-3/4" />
+                </div>
+              ) : data?.spotlight ? (
+                <div className="space-y-6">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm text-primary font-semibold">
+                        {data.spotlight.key}
+                      </span>
+                      <Badge variant="outline">
+                        {data.spotlight.status.replace("_", " ")}
+                      </Badge>
+                    </div>
+                    <h2 className="text-xl font-semibold">
+                      {data.spotlight.name}
+                    </h2>
+                    {data.spotlight.summary ? (
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {data.spotlight.summary}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Progress</span>
+                      <span>{data.spotlight.progress}%</span>
+                    </div>
+                    <Progress value={data.spotlight.progress} />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {data.spotlight.modules.length > 0 ? (
+                      data.spotlight.modules.map((module) => (
+                        <div
+                          key={module.id}
+                          className="rounded-lg border bg-muted/40 px-3 py-2"
+                        >
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                            {module.layer}
+                          </p>
+                          <p className="text-sm font-medium">
+                            {module.name}
+                          </p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="col-span-full text-sm text-muted-foreground">
+                        No modules are currently associated with this project.
+                      </p>
+                    )}
+                  </div>
+                  <Separator />
+                  <div className="flex flex-col gap-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <Sparkles className="h-4 w-4" />
+                        Next milestone
+                      </span>
+                      <span>
+                        {data.spotlight.nextMilestone ?? "To be defined"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <Activity className="h-4 w-4" />
+                        Updated
+                      </span>
+                      <span>
+                        {formatDistanceToNow(
+                          new Date(data.spotlight.updatedAt),
+                          { addSuffix: true },
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3 text-sm text-muted-foreground">
+                  <p>No projects are active yet.</p>
+                  <p>Create a project to see real-time progress here.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-1 lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Workload & Capacity</CardTitle>
+              <CardDescription>
+                Story points in-flight against assumed capacity.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-6 w-20" />
+                  <Skeleton className="h-3 w-full rounded-full" />
+                  <Skeleton className="h-3 w-3/4 rounded-full" />
+                  <Skeleton className="h-3 w-4/5 rounded-full" />
+                </div>
+              ) : data ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-3xl font-semibold">
+                        {data.workload.activeStoryPoints}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Active story points
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="gap-1">
+                      <Users className="h-3 w-3" />
+                      Capacity {data.workload.capacityStoryPoints}
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Utilization</span>
+                      <span>{data.workload.utilization}%</span>
+                    </div>
+                    <Progress value={data.workload.utilization} />
+                  </div>
+                  <Separator />
+                  <div className="space-y-3">
+                    {Object.entries(data.workload.statusBreakdown).map(
+                      ([status, breakdown]) => (
+                        <div
+                          key={status}
+                          className="flex items-center justify-between text-sm"
+                        >
+                          <span className="capitalize text-muted-foreground">
+                            {status.replace("_", " ")}
+                          </span>
+                          <span className="font-medium">
+                            {breakdown.storyPoints} pts ·{" "}
+                            {breakdown.count} tasks
+                          </span>
+                        </div>
+                      ),
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No workload details available yet.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+          <Card className="col-span-1 lg:col-span-3">
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
+              <div>
+                <CardTitle>Upcoming Deadlines</CardTitle>
+                <CardDescription>
+                  Estimated due dates based on current story point load.
+                </CardDescription>
+              </div>
+              <Badge variant="outline" className="gap-1">
+                <Calendar className="h-3 w-3" />
+                Next 6
+              </Badge>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isLoading ? (
+                <div className="space-y-4">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between gap-4 border-b pb-3 last:border-b-0 last:pb-0"
+                    >
+                      <div className="space-y-1">
+                        <Skeleton className="h-4 w-40" />
+                        <Skeleton className="h-3 w-24" />
+                      </div>
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : data && data.upcomingDeadlines.length > 0 ? (
+                <ScrollArea className="h-80 pr-4">
+                  <div className="space-y-4">
+                    {data.upcomingDeadlines.map((deadline) => (
+                      <div
+                        key={deadline.id}
+                        className="flex flex-col gap-2 border-b pb-3 last:border-b-0 last:pb-0"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="space-y-1">
+                            <p className="font-medium">{deadline.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(deadline.dueDate), "eee, MMM d")}
+                              {" · "}
+                              {deadline.storyPoints} pts
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="capitalize">
+                            {deadline.priority}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>Project {deadline.projectId.slice(0, 6)}…</span>
+                          <span className="capitalize">
+                            {deadline.status.replace("_", " ")}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No upcoming deadlines detected. Clear skies ahead!
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="col-span-1 lg:col-span-2">
+            <CardHeader>
+              <CardTitle>AI Insights</CardTitle>
+              <CardDescription>
+                Smart callouts from your workspace data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {isLoading ? (
+                Array.from({ length: 3 }).map((_, index) => (
+                  <Skeleton key={index} className="h-12 w-full" />
+                ))
+              ) : data ? (
+                data.insights.map((insight, index) => (
+                  <div
+                    key={`${insight}-${index}`}
+                    className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3 text-sm"
+                  >
+                    <Sparkles className="mt-0.5 h-4 w-4 text-primary" />
+                    <p>{insight}</p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No AI insights just yet.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Recent Activity</CardTitle>
+              <CardDescription>
+                What changed across projects and tasks lately.
+              </CardDescription>
+            </div>
+            <Badge variant="outline" className="gap-1">
+              <Activity className="h-3 w-3" />
+              Timeline
+            </Badge>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-4 text-sm text-muted-foreground"
+                >
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/5" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </div>
+                </div>
+              ))
+            ) : data && data.activityFeed.length > 0 ? (
+              <ScrollArea className="h-80 pr-4">
+                <div className="space-y-4">
+                  {data.activityFeed.map((item) => (
+                    <div
+                      key={`${item.type}-${item.id}`}
+                      className="flex items-start gap-3 border-b pb-3 last:border-b-0 last:pb-0"
+                    >
+                      <div className="h-10 w-10 flex items-center justify-center rounded-full bg-primary/10 text-primary">
+                        {item.type === "project" ? (
+                          <Rocket className="h-5 w-5" />
+                        ) : (
+                          <ClipboardList className="h-5 w-5" />
+                        )}
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="font-medium">{item.title}</p>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(item.timestamp), {
+                              addSuffix: true,
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {item.status.replace("_", " ")}
+                        </p>
+                        <p className="text-sm">{item.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No recorded activity yet. Once work starts flowing, you&apos;ll
+                see a chronological stream here.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </PageContainer>
     </div>
   );
 }
 
-function NoResultsState({ onReset }: { onReset: () => void }) {
-  return (
-    <div className="flex flex-col items-center justify-center h-64 border border-dashed rounded-lg text-center space-y-3 bg-muted/30">
-      <p className="text-lg font-semibold">No matching projects</p>
-      <p className="text-sm text-muted-foreground">
-        Try adjusting your search or clearing filters to see all projects.
-      </p>
-      <Button variant="outline" onClick={onReset} data-testid="button-clear-search">
-        Clear search
-      </Button>
-    </div>
-  );
-}

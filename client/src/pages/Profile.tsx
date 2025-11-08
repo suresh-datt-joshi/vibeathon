@@ -118,7 +118,7 @@ architecture tools.`,
       {
         id: "proj-3",
         key: "VIBE-174",
-        name: "Analytics Dashboard",
+        name: "Analytics Suite",
         summary: "Launching real-time velocity and burndown reporting.",
         status: "Shipped",
         updated: "Released last week",

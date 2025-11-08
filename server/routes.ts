@@ -4,6 +4,9 @@ import { storage } from "./storage";
 import { generateProjectSpec } from "./ai-service";
 import { insertProjectSchema, insertTaskSchema } from "@shared/schema";
 import { z } from "zod";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
+import { projects, tasks } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const ACTIVE_TASK_STATUSES = new Set(["todo", "in_progress", "review"]);
@@ -207,107 +210,407 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/reports/summary", async (_req, res) => {
     try {
-      const projects = await storage.getProjects();
-      const totalProjects = projects.length;
-      const now = Date.now();
-      const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
-      const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+      const projectAggResult = await db.execute(
+        sql`
+          SELECT
+            COALESCE(COUNT(*)::int, 0) AS total_projects,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN ${projects.createdAt} >= NOW() - INTERVAL '30 days'
+                  THEN 1
+                  ELSE 0
+                END
+              )::int,
+              0
+            ) AS projects_created_last_30_days
+          FROM ${projects}
+        `,
+      );
 
-      let projectsCreatedLast30Days = 0;
+      const taskAggResult = await db.execute(
+        sql`
+          SELECT
+            COALESCE(COUNT(*)::int, 0) AS total_tasks,
+            COALESCE(
+              SUM(
+                CASE WHEN ${tasks.status} = 'done' THEN 1 ELSE 0 END
+              )::int,
+              0
+            ) AS completed_tasks,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN ${tasks.status} = 'done'
+                    AND ${tasks.updatedAt} >= NOW() - INTERVAL '7 days'
+                  THEN 1
+                  ELSE 0
+                END
+              )::int,
+              0
+            ) AS completed_last_7_days,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN ${tasks.status} IN ('todo', 'in_progress', 'review')
+                  THEN 1
+                  ELSE 0
+                END
+              )::int,
+              0
+            ) AS active_tasks,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN ${tasks.status} IN ('blocked', 'backlog')
+                  THEN 1
+                  ELSE 0
+                END
+              )::int,
+              0
+            ) AS blocked_tasks,
+            COALESCE(
+              SUM(
+                CASE
+                  WHEN COALESCE(${tasks.aiGenerated}, 0) > 0
+                  THEN 1
+                  ELSE 0
+                END
+              )::int,
+              0
+            ) AS ai_generated_tasks,
+            COALESCE(
+              COUNT(
+                DISTINCT CASE
+                  WHEN ${tasks.status} IN ('todo', 'in_progress', 'review')
+                  THEN ${tasks.projectId}
+                  ELSE NULL
+                END
+              )::int,
+              0
+            ) AS active_projects,
+            COALESCE(
+              COUNT(
+                DISTINCT CASE
+                  WHEN ${tasks.status} IN ('blocked', 'backlog')
+                  THEN ${tasks.projectId}
+                  ELSE NULL
+                END
+              )::int,
+              0
+            ) AS blocked_projects
+          FROM ${tasks}
+        `,
+      );
 
-      let totalTasks = 0;
-      let completedTasks = 0;
-      let completedLast7Days = 0;
-      let activeTasks = 0;
-      let blockedTasks = 0;
-      let aiGeneratedTasks = 0;
+      const projectAgg = projectAggResult.rows[0] ?? {
+        total_projects: 0,
+        projects_created_last_30_days: 0,
+      };
 
-      let activeProjects = 0;
-      let blockedProjects = 0;
-
-      for (const project of projects) {
-        const createdAt =
-          project.createdAt instanceof Date
-            ? project.createdAt
-            : new Date(project.createdAt);
-
-        if (!Number.isNaN(createdAt.getTime()) && createdAt >= thirtyDaysAgo) {
-          projectsCreatedLast30Days += 1;
-        }
-
-        const tasks = await storage.getTasksByProject(project.id);
-        if (!tasks.length) {
-          continue;
-        }
-
-        totalTasks += tasks.length;
-
-        let projectHasActiveTasks = false;
-        let projectHasBlockedTasks = false;
-
-        for (const task of tasks) {
-          if ((task.aiGenerated ?? 0) > 0) {
-            aiGeneratedTasks += 1;
-          }
-
-          const status = task.status || "todo";
-          const updatedAt =
-            task.updatedAt instanceof Date
-              ? task.updatedAt
-              : new Date(task.updatedAt);
-
-          if (status === "done") {
-            completedTasks += 1;
-            if (
-              updatedAt instanceof Date &&
-              !Number.isNaN(updatedAt.getTime()) &&
-              updatedAt >= sevenDaysAgo
-            ) {
-              completedLast7Days += 1;
-            }
-            continue;
-          }
-
-          if (ACTIVE_TASK_STATUSES.has(status)) {
-            activeTasks += 1;
-            projectHasActiveTasks = true;
-            continue;
-          }
-
-          if (BLOCKED_TASK_STATUSES.has(status)) {
-            blockedTasks += 1;
-            projectHasBlockedTasks = true;
-          }
-        }
-
-        if (projectHasActiveTasks) {
-          activeProjects += 1;
-        }
-
-        if (projectHasBlockedTasks) {
-          blockedProjects += 1;
-        }
-      }
+      const taskAgg = taskAggResult.rows[0] ?? {
+        total_tasks: 0,
+        completed_tasks: 0,
+        completed_last_7_days: 0,
+        active_tasks: 0,
+        blocked_tasks: 0,
+        ai_generated_tasks: 0,
+        active_projects: 0,
+        blocked_projects: 0,
+      };
 
       res.json({
-        totalProjects,
-        projectsCreatedLast30Days,
+        totalProjects: Number(projectAgg.total_projects ?? 0),
+        projectsCreatedLast30Days: Number(
+          projectAgg.projects_created_last_30_days ?? 0,
+        ),
         totals: {
-          totalTasks,
-          completedTasks,
-          completedLast7Days,
-          activeTasks,
-          blockedTasks,
-          aiGeneratedTasks,
+          totalTasks: Number(taskAgg.total_tasks ?? 0),
+          completedTasks: Number(taskAgg.completed_tasks ?? 0),
+          completedLast7Days: Number(taskAgg.completed_last_7_days ?? 0),
+          activeTasks: Number(taskAgg.active_tasks ?? 0),
+          blockedTasks: Number(taskAgg.blocked_tasks ?? 0),
+          aiGeneratedTasks: Number(taskAgg.ai_generated_tasks ?? 0),
         },
         distribution: {
-          activeProjects,
-          blockedProjects,
+          activeProjects: Number(taskAgg.active_projects ?? 0),
+          blockedProjects: Number(taskAgg.blocked_projects ?? 0),
         },
       });
     } catch (error) {
       console.error("Error building report summary:", error);
       res.status(500).json({ error: "Failed to build reports summary" });
+    }
+  });
+
+  app.get("/api/dashboard", async (_req, res) => {
+    try {
+      const allProjects = await storage.getProjects();
+
+      const projectDetails = await Promise.all(
+        allProjects.map(async (project) => {
+          const [projectTasks, projectModules] = await Promise.all([
+            storage.getTasksByProject(project.id),
+            storage.getModulesByProject(project.id),
+          ]);
+
+          const completedTasks = projectTasks.filter(
+            (task) => task.status === "done",
+          );
+          const activeTasks = projectTasks.filter((task) =>
+            ACTIVE_TASK_STATUSES.has(task.status),
+          );
+          const blockedTasks = projectTasks.filter((task) =>
+            BLOCKED_TASK_STATUSES.has(task.status),
+          );
+
+          const totalStoryPoints = projectTasks.reduce(
+            (total, task) => total + (task.storyPoints ?? 0),
+            0,
+          );
+          const completedStoryPoints = completedTasks.reduce(
+            (total, task) => total + (task.storyPoints ?? 0),
+            0,
+          );
+
+          return {
+            project,
+            tasks: projectTasks,
+            modules: projectModules,
+            counts: {
+              total: projectTasks.length,
+              completed: completedTasks.length,
+              active: activeTasks.length,
+              blocked: blockedTasks.length,
+              totalStoryPoints,
+              completedStoryPoints,
+            },
+          };
+        }),
+      );
+
+      const allTasks = projectDetails.flatMap((entry) => entry.tasks);
+
+      const totalProjects = projectDetails.length;
+      const totalTasks = allTasks.length;
+      const completedTasksCount = allTasks.filter(
+        (task) => task.status === "done",
+      ).length;
+      const activeTasksCount = allTasks.filter((task) =>
+        ACTIVE_TASK_STATUSES.has(task.status),
+      ).length;
+      const blockedTasksCount = allTasks.filter((task) =>
+        BLOCKED_TASK_STATUSES.has(task.status),
+      ).length;
+
+      const overview = {
+        totalProjects,
+        totalTasks,
+        completedTasks: completedTasksCount,
+        activeTasks: activeTasksCount,
+        blockedTasks: blockedTasksCount,
+        completionRate:
+          totalTasks === 0
+            ? 0
+            : Math.round((completedTasksCount / totalTasks) * 100),
+        activeProjects: projectDetails.filter(
+          (entry) => entry.counts.active > 0,
+        ).length,
+      };
+
+      const spotlightCandidate =
+        projectDetails
+          .slice()
+          .sort((a, b) => {
+            if (a.counts.active === b.counts.active) {
+              return (
+                new Date(b.project.updatedAt).getTime() -
+                new Date(a.project.updatedAt).getTime()
+              );
+            }
+            return b.counts.active - a.counts.active;
+          })
+          .at(0) ?? projectDetails.at(0);
+
+      const hasMeaningfulActivity =
+        !!spotlightCandidate &&
+        (spotlightCandidate.counts.active > 0 ||
+          spotlightCandidate.counts.completed <
+            spotlightCandidate.counts.total);
+
+      const spotlight =
+        spotlightCandidate && hasMeaningfulActivity
+        ? {
+            id: spotlightCandidate.project.id,
+            key: spotlightCandidate.project.key,
+            name: spotlightCandidate.project.name,
+            status: (() => {
+              const hasActive = spotlightCandidate.counts.active > 0;
+              const hasRemaining =
+                spotlightCandidate.counts.completed <
+                spotlightCandidate.counts.total;
+              if (hasActive) {
+                return "active";
+              }
+              if (hasRemaining) {
+                return "in_progress";
+              }
+              return spotlightCandidate.project.status;
+            })(),
+            progress:
+              spotlightCandidate.counts.total === 0
+                ? 0
+                : Math.round(
+                    (spotlightCandidate.counts.completed /
+                      spotlightCandidate.counts.total) *
+                      100,
+                  ),
+            summary: spotlightCandidate.project.description,
+            modules: spotlightCandidate.modules
+              .slice(0, 3)
+              .map((module) => ({
+                id: module.id,
+                name: module.name,
+                layer: module.layer,
+              })),
+            nextMilestone:
+              spotlightCandidate.tasks
+                .filter((task) => task.status !== "done")
+                .slice()
+                .sort(
+                  (a, b) =>
+                    new Date(a.updatedAt).getTime() -
+                    new Date(b.updatedAt).getTime(),
+                )
+                .at(0)?.title ?? null,
+            updatedAt: spotlightCandidate.project.updatedAt,
+          }
+        : null;
+
+      const storyPointsTotals = allTasks.reduce(
+        (acc, task) => {
+          const storyPoints = task.storyPoints ?? 0;
+          const bucket = acc.byStatus[task.status] ?? {
+            count: 0,
+            storyPoints: 0,
+          };
+          bucket.count += 1;
+          bucket.storyPoints += storyPoints;
+          acc.byStatus[task.status] = bucket;
+          acc.totalStoryPoints += storyPoints;
+          if (ACTIVE_TASK_STATUSES.has(task.status)) {
+            acc.activeStoryPoints += storyPoints;
+          }
+          return acc;
+        },
+        {
+          byStatus: {} as Record<
+            string,
+            { count: number; storyPoints: number }
+          >,
+          totalStoryPoints: 0,
+          activeStoryPoints: 0,
+        },
+      );
+
+      const assumedCapacity =
+        Math.max(overview.activeProjects, 1) * 40;
+      const workload = {
+        totalStoryPoints: storyPointsTotals.totalStoryPoints,
+        activeStoryPoints: storyPointsTotals.activeStoryPoints,
+        capacityStoryPoints: assumedCapacity,
+        utilization:
+          assumedCapacity === 0
+            ? 0
+            : Math.min(
+                100,
+                Math.round(
+                  (storyPointsTotals.activeStoryPoints / assumedCapacity) * 100,
+                ),
+              ),
+        statusBreakdown: storyPointsTotals.byStatus,
+      };
+
+      const upcomingDeadlines = allTasks
+        .filter((task) => task.status !== "done")
+        .map((task) => {
+          const referenceDate = task.updatedAt ?? task.createdAt ?? new Date();
+          const storyPoints = task.storyPoints ?? 3;
+          const estimatedDays = Math.max(1, Math.round(storyPoints / 2));
+          const dueDate = new Date(referenceDate);
+          dueDate.setDate(dueDate.getDate() + estimatedDays);
+
+          return {
+            id: task.id,
+            title: task.title,
+            projectId: task.projectId,
+            status: task.status,
+            storyPoints: storyPoints,
+            dueDate,
+            priority: task.priority,
+          };
+        })
+        .sort(
+          (a, b) =>
+            new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+        )
+        .slice(0, 6);
+
+      const insights: string[] = [];
+      if (blockedTasksCount > 0) {
+        insights.push(
+          `${blockedTasksCount} task${blockedTasksCount === 1 ? "" : "s"} need attention (blocked/backlog).`,
+        );
+      }
+      if (overview.completionRate >= 70) {
+        insights.push("Great momentum—over 70% of tasks are completed.");
+      }
+      if (overview.activeTasks > assumedCapacity * 0.75) {
+        insights.push("Workload is nearing capacity; consider reprioritizing.");
+      }
+      if (insights.length === 0) {
+        insights.push("All systems nominal. Keep the current pace!");
+      }
+
+      const recentProjectEvents = projectDetails
+        .map((entry) => ({
+          type: "project" as const,
+          id: entry.project.id,
+          title: entry.project.name,
+          status: entry.project.status,
+          timestamp: entry.project.updatedAt,
+          description: `Project status is ${entry.project.status}`,
+        }));
+
+      const recentTaskEvents = allTasks.map((task) => ({
+        type: "task" as const,
+        id: task.id,
+        title: task.title,
+        status: task.status,
+        timestamp: task.updatedAt ?? task.createdAt ?? new Date(),
+        description: `Task ${task.key} is ${task.status.replace("_", " ")}`,
+        projectId: task.projectId,
+      }));
+
+      const activityFeed = [...recentProjectEvents, ...recentTaskEvents]
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() -
+            new Date(a.timestamp).getTime(),
+        )
+        .slice(0, 10);
+
+      res.json({
+        overview,
+        spotlight,
+        workload,
+        upcomingDeadlines,
+        insights,
+        activityFeed,
+      });
+    } catch (error) {
+      console.error("Error building dashboard:", error);
+      res.status(500).json({ error: "Failed to build dashboard data" });
     }
   });
 

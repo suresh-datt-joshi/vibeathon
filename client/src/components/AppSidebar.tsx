@@ -14,9 +14,9 @@ import { useLocation } from "wouter";
 const menuItems = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/dashboard",
     icon: LayoutDashboard,
-    match: (path: string) => path === "/",
+    match: (path: string) => path === "/" || path.startsWith("/dashboard"),
   },
   {
     title: "Projects",

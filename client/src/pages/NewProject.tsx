@@ -39,6 +39,7 @@ export default function NewProject() {
     onSuccess: (data) => {
       setProjectId(data.project.id);
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
 
       simulateProgress();
     },
@@ -94,14 +95,14 @@ export default function NewProject() {
   };
 
   const handleCancel = () => {
-    setLocation("/");
+    setLocation("/projects");
   };
 
   return (
     <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
       <div className="border-b border-border bg-card py-4">
         <Breadcrumbs items={[
-          { label: "Projects", href: "/" },
+          { label: "Projects", href: "/projects" },
           { label: "Create Project" }
         ]} />
         <h1 className="text-2xl font-semibold mt-3">Create AI-Powered Project</h1>
