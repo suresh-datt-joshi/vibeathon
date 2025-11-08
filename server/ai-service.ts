@@ -43,7 +43,7 @@ export async function generateProjectSpec(
   projectKey: string,
   projectName: string,
   requirements: string,
-  onProgress?: (stage: string, progress: number) => void
+  onProgress?: (stage: string, progress: number) => void,
 ): Promise<AIProjectSpec> {
   const prompt = `You are an expert software architect and project planner. Generate a comprehensive project specification for the following project:
 
@@ -85,7 +85,7 @@ Respond ONLY with valid JSON in this exact format:
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
 
@@ -94,23 +94,31 @@ Respond ONLY with valid JSON in this exact format:
     }
 
     const text = response.text || "";
-    
+
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error("Failed to extract JSON from AI response. Response was: " + text.substring(0, 200));
+      throw new Error(
+        "Failed to extract JSON from AI response. Response was: " +
+          text.substring(0, 200),
+      );
     }
 
     let spec: AIProjectSpec;
     try {
       spec = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
-      throw new Error("Failed to parse JSON from AI response: " + (parseError instanceof Error ? parseError.message : "Unknown error"));
+      throw new Error(
+        "Failed to parse JSON from AI response: " +
+          (parseError instanceof Error ? parseError.message : "Unknown error"),
+      );
     }
 
     if (!spec.architecture || !spec.tasks) {
-      throw new Error("Invalid AI response structure: missing architecture or tasks");
+      throw new Error(
+        "Invalid AI response structure: missing architecture or tasks",
+      );
     }
-    
+
     if (!Array.isArray(spec.tasks) || spec.tasks.length === 0) {
       throw new Error("AI response must include at least one task");
     }
@@ -122,14 +130,16 @@ Respond ONLY with valid JSON in this exact format:
     return spec;
   } catch (error) {
     console.error("AI generation error:", error);
-    throw new Error(`Failed to generate project spec: ${error instanceof Error ? error.message : "Unknown error"}`);
+    throw new Error(
+      `Failed to generate project spec: ${error instanceof Error ? error.message : "Unknown error"}`,
+    );
   }
 }
 
 export async function* generateProjectSpecStreaming(
   projectKey: string,
   projectName: string,
-  requirements: string
+  requirements: string,
 ) {
   yield { stage: "Analyzing requirements...", progress: 10 };
 
@@ -152,7 +162,7 @@ Each task: key, title, description, type (epic/story/subtask), priority, storyPo
       model: "gemini-2.0-flash-exp",
       contents: prompt,
     });
-    
+
     yield { stage: "Processing modules...", progress: 70 };
 
     const text = response.text || "";
@@ -167,6 +177,8 @@ Each task: key, title, description, type (epic/story/subtask), priority, storyPo
 
     yield { stage: "Complete", progress: 100, data: spec };
   } catch (error) {
-    throw new Error(`AI generation failed: ${error instanceof Error ? error.message : "Unknown"}`);
+    throw new Error(
+      `AI generation failed: ${error instanceof Error ? error.message : "Unknown"}`,
+    );
   }
 }

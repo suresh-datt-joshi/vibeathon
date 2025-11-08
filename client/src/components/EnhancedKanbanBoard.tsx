@@ -36,7 +36,7 @@ export default function EnhancedKanbanBoard({ projectId, tasks, onTaskUpdate }: 
   const getColumnTasks = (status: Task["status"]) => 
     tasks.filter((task) => task.status === status);
 
-  const typeConfig: Record<Task["type"], { className: string; label: string }> = {
+  const typeConfig: Record<string, { className: string; label: string }> = {
     epic: { 
       className: "bg-[hsl(var(--lozenge-blocked-bg))] text-[hsl(var(--lozenge-blocked))] border-[hsl(var(--lozenge-blocked))]", 
       label: "Epic" 
@@ -49,6 +49,13 @@ export default function EnhancedKanbanBoard({ projectId, tasks, onTaskUpdate }: 
       className: "bg-[hsl(var(--lozenge-low-bg))] text-[hsl(var(--lozenge-low))] border-[hsl(var(--lozenge-low))]", 
       label: "Subtask" 
     },
+  };
+
+  const getTypeConfig = (type: string) => {
+    return typeConfig[type] || {
+      className: "bg-muted text-muted-foreground border-muted-foreground",
+      label: type.charAt(0).toUpperCase() + type.slice(1)
+    };
   };
 
   const priorityColors: Record<string, string> = {
@@ -113,9 +120,9 @@ export default function EnhancedKanbanBoard({ projectId, tasks, onTaskUpdate }: 
                         <div className="flex items-center gap-1">
                           <Badge 
                             variant="outline" 
-                            className={`text-xs h-5 px-1.5 ${typeConfig[task.type].className}`}
+                            className={`text-xs h-5 px-1.5 ${getTypeConfig(task.type).className}`}
                           >
-                            {typeConfig[task.type].label}
+                            {getTypeConfig(task.type).label}
                           </Badge>
                           {task.aiGenerated && (
                             <Badge 
