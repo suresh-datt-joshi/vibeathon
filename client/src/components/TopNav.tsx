@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -18,16 +19,27 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 
 export default function TopNav() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+
+  const handleSignOut = useCallback(() => {
+    toast({
+      title: "Signed out",
+      description: "You have been signed out of your session.",
+    });
+
+    setLocation("/");
+  }, [setLocation, toast]);
 
   return (
-    <header className="border-b border-border bg-card sticky top-0 z-50 flex-shrink-0">
-      <div className="flex items-center gap-4 px-4 h-14">
+    <header className="border-b border-border bg-card sticky top-0 z-50 flex-shrink-0 w-full">
+      <div className="flex items-center gap-4 h-14 w-full max-w-6xl mx-auto px-4">
         <SidebarTrigger data-testid="button-sidebar-toggle" />
 
-        <div className="flex-1 max-w-md">
+        <div className="flex-1 max-w-xl ml-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -38,7 +50,7 @@ export default function TopNav() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           <Button
             variant="default"
             size="sm"
@@ -55,13 +67,14 @@ export default function TopNav() {
                 variant="ghost"
                 size="icon"
                 data-testid="button-help"
-                disabled
+                aria-label="Open help center"
+                onClick={() => setLocation("/help")}
               >
                 <HelpCircle className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent sideOffset={6}>
-              Help center coming soon
+              Visit the help center
             </TooltipContent>
           </Tooltip>
 
@@ -91,8 +104,14 @@ export default function TopNav() {
                 Profile
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem data-testid="menu-signout" disabled>
-                Sign out (coming soon)
+              <DropdownMenuItem
+                data-testid="menu-signout"
+                onSelect={(event) => {
+                  event.preventDefault();
+                  handleSignOut();
+                }}
+              >
+                Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

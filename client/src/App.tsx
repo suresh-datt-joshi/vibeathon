@@ -13,6 +13,7 @@ import NewProject from "@/pages/NewProject";
 import Settings from "@/pages/Settings";
 import Profile from "@/pages/Profile";
 import Reports from "@/pages/Reports";
+import Help from "@/pages/Help";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/profile" component={Profile} />
       <Route path="/reports" component={Reports} />
+      <Route path="/help" component={Help} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -39,7 +39,7 @@ export default function NewProject() {
     onSuccess: (data) => {
       setProjectId(data.project.id);
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
-      
+
       simulateProgress();
     },
     onError: (error) => {
@@ -60,7 +60,7 @@ export default function NewProject() {
         if (stageIndex < stages.length) {
           setStage(stages[stageIndex]);
         }
-        
+
         if (newProgress >= 100) {
           clearInterval(interval);
           setTimeout(() => {
@@ -84,7 +84,7 @@ export default function NewProject() {
     setIsProcessing(true);
     setProgress(0);
     setStage(stages[0]);
-    
+
     createProjectMutation.mutate({
       name: projectName,
       key: projectKey.toUpperCase(),
@@ -98,8 +98,8 @@ export default function NewProject() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto">
-      <div className="border-b border-border bg-card px-6 py-4">
+    <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="border-b border-border bg-card py-4">
         <Breadcrumbs items={[
           { label: "Projects", href: "/" },
           { label: "Create Project" }
@@ -107,7 +107,7 @@ export default function NewProject() {
         <h1 className="text-2xl font-semibold mt-3">Create AI-Powered Project</h1>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="py-6 space-y-6">
         <Card>
           <CardHeader className="border-b">
             <CardTitle className="text-base font-semibold">Project Details</CardTitle>
@@ -192,25 +192,25 @@ export default function NewProject() {
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {[
-                { 
-                  step: "1", 
-                  title: "Analyze", 
-                  desc: "AI analyzes your requirements and identifies key features" 
+                {
+                  step: "1",
+                  title: "Analyze",
+                  desc: "AI analyzes your requirements and identifies key features"
                 },
-                { 
-                  step: "2", 
-                  title: "Design", 
-                  desc: "Generates optimal architecture with frontend, backend, and database modules" 
+                {
+                  step: "2",
+                  title: "Design",
+                  desc: "Generates optimal architecture with frontend, backend, and database modules"
                 },
-                { 
-                  step: "3", 
-                  title: "Tasks", 
-                  desc: "Breaks down implementation into actionable tasks with priorities" 
+                {
+                  step: "3",
+                  title: "Tasks",
+                  desc: "Breaks down implementation into actionable tasks with priorities"
                 },
-                { 
-                  step: "4", 
-                  title: "Export", 
-                  desc: "Provides complete JSON specification ready for export" 
+                {
+                  step: "4",
+                  title: "Export",
+                  desc: "Provides complete JSON specification ready for export"
                 },
               ].map(({ step, title, desc }) => (
                 <div key={step} className="space-y-2">
@@ -230,8 +230,8 @@ export default function NewProject() {
         </Card>
 
         <div className="flex items-center justify-between pt-4 border-t">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleCancel}
             disabled={isProcessing}
             data-testid="button-cancel"

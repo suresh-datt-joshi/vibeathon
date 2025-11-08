@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import PageContainer from "@/components/PageContainer";
 
 export default function Settings() {
   const { toast } = useToast();
@@ -18,7 +19,7 @@ export default function Settings() {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="container max-w-4xl py-8 px-4">
+      <PageContainer className="py-8">
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
@@ -163,7 +164,7 @@ export default function Settings() {
             </Button>
           </div>
         </div>
-      </div>
+      </PageContainer>
     </div>
   );
 }

@@ -1,12 +1,25 @@
+import { useCallback, useMemo, useState } from "react";
+import { useLocation } from "wouter";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { Search, Filter, LayoutGrid, List, Clock, CheckCircle, AlertCircle } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { formatDistanceToNow } from "date-fns";
+import {
+  Search,
+  Filter,
+  LayoutGrid,
+  List,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Trash2,
+} from "lucide-react";
 import {
   Table,
   TableBody,
@@ -21,6 +34,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface ProjectWithCounts {
   id: string;
@@ -41,10 +56,58 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [searchTerm, setSearchTerm] = useState("");
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: projects = [], isLoading } = useQuery<ProjectWithCounts[]>({
     queryKey: ["/api/projects"],
   });
+
+  const deleteProject = useMutation({
+    mutationFn: async (projectId: string) => {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => null);
+        throw new Error(error?.error || "Failed to delete project");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports/summary"] });
+      toast({
+        title: "Project deleted",
+        description: "The project has been removed from your workspace.",
+      });
+    },
+    onError: (error: unknown) => {
+      toast({
+        title: "Unable to delete project",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Please try again in a moment.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteProject = useCallback(
+    (projectId: string) => {
+      const confirmed = window.confirm(
+        "Delete this project? All generated tasks and modules will be removed."
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      deleteProject.mutate(projectId);
+    },
+    [deleteProject]
+  );
 
   const filteredProjects = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
@@ -85,16 +148,16 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="max-w-[1800px] mx-auto">
-      <div className="border-b border-border bg-card px-6 py-4">
-        <Breadcrumbs items={[{ label: "Projects" }]} />
-        <div className="flex items-center justify-between mt-3">
-          <h1 className="text-2xl font-semibold">Projects</h1>
+    <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="border-b border-border bg-card py-6 px-6 sm:px-8 rounded-b-lg">
+        <div className="flex flex-col gap-4">
+          <Breadcrumbs items={[{ label: "Dashboard" }]} />
+          <h1 className="text-3xl font-semibold tracking-tight">Projects</h1>
         </div>
       </div>
 
-      <div className="p-6 space-y-4">
-        <div className="flex items-center justify-between gap-4">
+      <div className="py-8 space-y-6">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2 flex-1 max-w-md">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -168,6 +231,7 @@ export default function Dashboard() {
                   <TableHead>Progress</TableHead>
                   <TableHead>Lead</TableHead>
                   <TableHead>Updated</TableHead>
+                  <TableHead className="w-[60px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -221,6 +285,20 @@ export default function Dashboard() {
                       <TableCell className="text-muted-foreground text-sm">
                         {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          data-testid={`button-delete-project-${project.id}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteProject(project.id);
+                          }}
+                          disabled={deleteProject.isPending}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -249,10 +327,25 @@ export default function Dashboard() {
                       </div>
                       <h3 className="font-semibold line-clamp-1">{project.name}</h3>
                     </div>
-                    <Badge variant="outline" className={`${config.className} text-xs`}>
-                      <StatusIcon className="h-2.5 w-2.5 mr-1" />
-                      {config.label}
-                    </Badge>
+                    <div className="flex items-center gap-1">
+                      <Badge variant="outline" className={cn(config.className, "text-xs")}>
+                        <StatusIcon className="h-2.5 w-2.5 mr-1" />
+                        {config.label}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        data-testid={`card-delete-project-${project.id}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleDeleteProject(project.id);
+                        }}
+                        disabled={deleteProject.isPending}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">

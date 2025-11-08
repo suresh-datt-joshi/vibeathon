@@ -65,8 +65,6 @@ export default function TaskDetailModal({
     }
   }, [task, open]);
 
-  if (!currentTask) return null;
-
   const typeConfig: Record<string, { className: string; label: string }> = {
     epic: {
       className:
@@ -85,27 +83,37 @@ export default function TaskDetailModal({
     },
   };
 
-  const activeTypeConfig =
-    typeConfig[currentTask.type] || {
+  const activeTypeConfig = currentTask
+    ? typeConfig[currentTask.type] || {
       className: "bg-muted text-muted-foreground border-muted-foreground",
       label:
         currentTask.type.charAt(0).toUpperCase() + currentTask.type.slice(1),
+    }
+    : {
+      className: "bg-muted text-muted-foreground border-muted-foreground",
+      label: "",
     };
 
   const handleStatusChange = (value: TaskStatus) => {
-    const updatedTask = { ...currentTask, status: value };
+    if (!currentTask) return;
+
+    const updatedTask: Task = { ...currentTask, status: value };
     setCurrentTask(updatedTask);
     onUpdateTask?.(updatedTask);
   };
 
   const handlePriorityChange = (value: TaskPriority) => {
-    const updatedTask = { ...currentTask, priority: value };
+    if (!currentTask) return;
+
+    const updatedTask: Task = { ...currentTask, priority: value };
     setCurrentTask(updatedTask);
     onUpdateTask?.(updatedTask);
   };
 
   const handleDescriptionSave = () => {
-    const updatedTask = { ...currentTask, description };
+    if (!currentTask) return;
+
+    const updatedTask: Task = { ...currentTask, description };
     setCurrentTask(updatedTask);
     onUpdateTask?.(updatedTask);
   };
@@ -187,8 +195,6 @@ export default function TaskDetailModal({
     statusLabel,
   ]);
 
-  if (!currentTask) return null;
-
   const handleCopyPrompt = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(agentPrompt);
@@ -198,6 +204,7 @@ export default function TaskDetailModal({
       console.error("Failed to copy prompt", error);
     }
   }, [agentPrompt]);
+  if (!currentTask) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -281,7 +288,7 @@ export default function TaskDetailModal({
                   )}
                 </Button>
               </label>
-              <div className="rounded-md border border-border bg-muted/40 p-4">
+              <div className="rounded-md border border-border bg-muted/40 p-4 max-h-72 overflow-y-auto">
                 <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed text-muted-foreground">
                   {agentPrompt}
                 </pre>

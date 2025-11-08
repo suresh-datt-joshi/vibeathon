@@ -1,19 +1,100 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMemo } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { 
-  TrendingUp, 
-  Clock, 
-  CheckCircle2, 
+import {
+  TrendingUp,
+  Clock,
+  CheckCircle2,
   AlertCircle,
   BarChart3,
-  Activity
+  Activity,
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import PageContainer from "@/components/PageContainer";
+
+interface ReportsSummary {
+  totalProjects: number;
+  projectsCreatedLast30Days: number;
+  totals: {
+    totalTasks: number;
+    completedTasks: number;
+    completedLast7Days: number;
+    activeTasks: number;
+    blockedTasks: number;
+    aiGeneratedTasks: number;
+  };
+  distribution: {
+    activeProjects: number;
+    blockedProjects: number;
+  };
+}
 
 export default function Reports() {
+  const { data: summary, isLoading } = useQuery<ReportsSummary>({
+    queryKey: ["/api/reports/summary"],
+  });
+
+  const metrics = useMemo(() => {
+    if (!summary) {
+      return {
+        totalProjects: 0,
+        projectsDeltaLabel: "",
+        completedTasks: 0,
+        completedDeltaLabel: "",
+        activeTasks: 0,
+        activeProjectsLabel: "",
+        blockedTasks: 0,
+        blockedProjectsLabel: "",
+      };
+    }
+
+    const projectsDeltaLabel =
+      summary.projectsCreatedLast30Days > 0
+        ? `+${summary.projectsCreatedLast30Days} in last 30 days`
+        : "No new projects this month";
+
+    const completedDeltaLabel =
+      summary.totals.completedLast7Days > 0
+        ? `+${summary.totals.completedLast7Days} in last 7 days`
+        : "No completions in last 7 days";
+
+    const activeProjectsLabel =
+      summary.totals.activeTasks > 0
+        ? `Across ${summary.distribution.activeProjects} ${summary.distribution.activeProjects === 1 ? "project" : "projects"
+        }`
+        : "No active work right now";
+
+    const blockedProjectsLabel =
+      summary.totals.blockedTasks > 0
+        ? `In ${summary.distribution.blockedProjects} ${summary.distribution.blockedProjects === 1
+          ? "project"
+          : "projects"
+        }`
+        : "All clear";
+
+    return {
+      totalProjects: summary.totalProjects,
+      projectsDeltaLabel,
+      completedTasks: summary.totals.completedTasks,
+      completedDeltaLabel,
+      activeTasks: summary.totals.activeTasks,
+      activeProjectsLabel,
+      blockedTasks: summary.totals.blockedTasks,
+      blockedProjectsLabel,
+    };
+  }, [summary]);
+
   return (
     <div className="h-full overflow-auto">
-      <div className="container max-w-6xl py-8 px-4">
+      <PageContainer className="py-8">
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
@@ -31,10 +112,21 @@ export default function Reports() {
                 <BarChart3 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">12</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-green-600">+2</span> from last month
-                </p>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-7 w-12" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">
+                      {metrics.totalProjects}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {metrics.projectsDeltaLabel}
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -46,10 +138,21 @@ export default function Reports() {
                 <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">247</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  <span className="text-green-600">+18%</span> from last week
-                </p>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-7 w-16" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">
+                      {metrics.completedTasks}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {metrics.completedDeltaLabel}
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -61,10 +164,21 @@ export default function Reports() {
                 <Clock className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">34</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Across 5 projects
-                </p>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-7 w-12" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">
+                      {metrics.activeTasks}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {metrics.activeProjectsLabel}
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
 
@@ -76,10 +190,21 @@ export default function Reports() {
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">7</div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Requires attention
-                </p>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-7 w-12" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">
+                      {metrics.blockedTasks}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {metrics.blockedProjectsLabel}
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -220,7 +345,7 @@ export default function Reports() {
             </TabsContent>
           </Tabs>
         </div>
-      </div>
+      </PageContainer>
     </div>
   );
 }

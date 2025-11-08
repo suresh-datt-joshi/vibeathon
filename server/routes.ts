@@ -6,6 +6,9 @@ import { insertProjectSchema, insertTaskSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const ACTIVE_TASK_STATUSES = new Set(["todo", "in_progress", "review"]);
+  const BLOCKED_TASK_STATUSES = new Set(["blocked", "backlog"]);
+
   app.post("/api/projects", async (req, res) => {
     try {
       const { name, key, requirements, description } = req.body;
@@ -199,6 +202,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error deleting project:", error);
       res.status(500).json({ error: "Failed to delete project" });
+    }
+  });
+
+  app.get("/api/reports/summary", async (_req, res) => {
+    try {
+      const projects = await storage.getProjects();
+      const totalProjects = projects.length;
+      const now = Date.now();
+      const thirtyDaysAgo = new Date(now - 30 * 24 * 60 * 60 * 1000);
+      const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000);
+
+      let projectsCreatedLast30Days = 0;
+
+      let totalTasks = 0;
+      let completedTasks = 0;
+      let completedLast7Days = 0;
+      let activeTasks = 0;
+      let blockedTasks = 0;
+      let aiGeneratedTasks = 0;
+
+      let activeProjects = 0;
+      let blockedProjects = 0;
+
+      for (const project of projects) {
+        const createdAt =
+          project.createdAt instanceof Date
+            ? project.createdAt
+            : new Date(project.createdAt);
+
+        if (!Number.isNaN(createdAt.getTime()) && createdAt >= thirtyDaysAgo) {
+          projectsCreatedLast30Days += 1;
+        }
+
+        const tasks = await storage.getTasksByProject(project.id);
+        if (!tasks.length) {
+          continue;
+        }
+
+        totalTasks += tasks.length;
+
+        let projectHasActiveTasks = false;
+        let projectHasBlockedTasks = false;
+
+        for (const task of tasks) {
+          if ((task.aiGenerated ?? 0) > 0) {
+            aiGeneratedTasks += 1;
+          }
+
+          const status = task.status || "todo";
+          const updatedAt =
+            task.updatedAt instanceof Date
+              ? task.updatedAt
+              : new Date(task.updatedAt);
+
+          if (status === "done") {
+            completedTasks += 1;
+            if (
+              updatedAt instanceof Date &&
+              !Number.isNaN(updatedAt.getTime()) &&
+              updatedAt >= sevenDaysAgo
+            ) {
+              completedLast7Days += 1;
+            }
+            continue;
+          }
+
+          if (ACTIVE_TASK_STATUSES.has(status)) {
+            activeTasks += 1;
+            projectHasActiveTasks = true;
+            continue;
+          }
+
+          if (BLOCKED_TASK_STATUSES.has(status)) {
+            blockedTasks += 1;
+            projectHasBlockedTasks = true;
+          }
+        }
+
+        if (projectHasActiveTasks) {
+          activeProjects += 1;
+        }
+
+        if (projectHasBlockedTasks) {
+          blockedProjects += 1;
+        }
+      }
+
+      res.json({
+        totalProjects,
+        projectsCreatedLast30Days,
+        totals: {
+          totalTasks,
+          completedTasks,
+          completedLast7Days,
+          activeTasks,
+          blockedTasks,
+          aiGeneratedTasks,
+        },
+        distribution: {
+          activeProjects,
+          blockedProjects,
+        },
+      });
+    } catch (error) {
+      console.error("Error building report summary:", error);
+      res.status(500).json({ error: "Failed to build reports summary" });
     }
   });
 
