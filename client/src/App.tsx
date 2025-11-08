@@ -3,7 +3,8 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import ThemeToggle from "@/components/ThemeToggle";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import TopNav from "@/components/TopNav";
 import Dashboard from "@/pages/Dashboard";
 import ProjectDetail from "@/pages/ProjectDetail";
@@ -25,12 +26,17 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="flex flex-col h-screen w-full bg-background">
-          <TopNav />
-          <main className="flex-1 overflow-auto">
-            <Router />
-          </main>
-        </div>
+        <SidebarProvider>
+          <div className="flex h-screen w-full bg-background">
+            <AppSidebar />
+            <div className="flex flex-col flex-1 min-w-0">
+              <TopNav />
+              <main className="flex-1 overflow-auto">
+                <Router />
+              </main>
+            </div>
+          </div>
+        </SidebarProvider>
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

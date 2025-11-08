@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Search, Plus, Settings, HelpCircle, Sparkles } from "lucide-react";
+import { Search, Plus, Settings, HelpCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   DropdownMenu,
@@ -12,25 +13,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function TopNav() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
 
   return (
-    <header className="border-b border-border bg-card sticky top-0 z-50">
+    <header className="border-b border-border bg-card sticky top-0 z-50 flex-shrink-0">
       <div className="flex items-center gap-4 px-4 h-14">
-        <button 
-          onClick={() => setLocation("/")} 
-          className="flex items-center gap-2 font-bold text-lg hover-elevate px-2 py-1 rounded-md"
-          data-testid="button-home"
-        >
-          <Sparkles className="h-5 w-5 text-primary" />
-          Aurora Ops
-        </button>
+        <SidebarTrigger data-testid="button-sidebar-toggle" />
 
         <div className="flex-1 max-w-md">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search projects..."
+              placeholder="Search issues, projects, people..."
               className="pl-9 bg-background"
               data-testid="input-search"
             />
@@ -58,7 +52,7 @@ export default function TopNav() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" data-testid="button-profile">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">AU</AvatarFallback>
+                  <AvatarFallback className="text-xs">JD</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
