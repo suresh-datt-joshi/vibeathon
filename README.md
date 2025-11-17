@@ -1,6 +1,22 @@
 # vibeathon
 
+![Logo](assets/logo.png)
+
 AI-powered project planning and architecture engine that transforms ideas into comprehensive project specifications.
+
+## Screenshots
+
+### Dashboard
+![Dashboard](assets/screenshots/dashboard.png)
+
+### Project Planning
+![Project Planning](assets/screenshots/project-planning.png)
+
+### Kanban Board
+![Kanban Board](assets/screenshots/kanban-board.png)
+
+### Analytics
+![Analytics](assets/screenshots/analytics.png)
 
 ## Features
 
@@ -36,6 +52,14 @@ AI-powered project planning and architecture engine that transforms ideas into c
    ```
 
 4. Access the application at `http://localhost:5000`
+
+## Architecture
+
+### System Architecture
+![System Architecture](assets/architecture/system-architecture.png)
+
+### Database Schema
+![Database Schema](assets/architecture/database-schema.png)
 
 ## Project Structure
 

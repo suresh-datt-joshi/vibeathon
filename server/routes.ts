@@ -343,6 +343,109 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/reports/velocity", async (_req, res) => {
+    try {
+      // Get story points completed per week for the last 12 weeks
+      const velocityResult = await db.execute(
+        sql`
+          SELECT
+            DATE_TRUNC('week', ${tasks.updatedAt}) AS week,
+            COALESCE(SUM(${tasks.storyPoints})::int, 0) AS story_points_completed
+          FROM ${tasks}
+          WHERE ${tasks.status} = 'done'
+            AND ${tasks.updatedAt} >= NOW() - INTERVAL '12 weeks'
+          GROUP BY DATE_TRUNC('week', ${tasks.updatedAt})
+          ORDER BY week ASC
+        `,
+      );
+
+      // Get total story points completed
+      const totalResult = await db.execute(
+        sql`
+          SELECT
+            COALESCE(SUM(${tasks.storyPoints})::int, 0) AS total_story_points_completed
+          FROM ${tasks}
+          WHERE ${tasks.status} = 'done'
+        `,
+      );
+
+      // Get average velocity (story points per week)
+      const avgVelocity = velocityResult.rows.length > 0
+        ? Math.round(
+            velocityResult.rows.reduce(
+              (sum: number, row: any) => sum + Number(row.story_points_completed ?? 0),
+              0
+            ) / velocityResult.rows.length
+          )
+        : 0;
+
+      res.json({
+        weeklyVelocity: velocityResult.rows.map((row: any) => ({
+          week: row.week,
+          storyPoints: Number(row.story_points_completed ?? 0),
+        })),
+        totalStoryPointsCompleted: Number(totalResult.rows[0]?.total_story_points_completed ?? 0),
+        averageVelocity: avgVelocity,
+      });
+    } catch (error) {
+      console.error("Error fetching velocity data:", error);
+      res.status(500).json({ error: "Failed to fetch velocity data" });
+    }
+  });
+
+  app.get("/api/reports/ai-usage", async (_req, res) => {
+    try {
+      // Get total AI-generated projects
+      const projectsResult = await db.execute(
+        sql`
+          SELECT COUNT(*)::int AS total_ai_projects
+          FROM ${projects}
+          WHERE ${projects.status} = 'completed'
+        `,
+      );
+
+      // Get AI-generated tasks count
+      const tasksResult = await db.execute(
+        sql`
+          SELECT
+            COALESCE(COUNT(*)::int, 0) AS total_ai_tasks,
+            COALESCE(SUM(${tasks.storyPoints})::int, 0) AS total_story_points
+          FROM ${tasks}
+          WHERE COALESCE(${tasks.aiGenerated}, 0) > 0
+        `,
+      );
+
+      // Get AI generations this month
+      const thisMonthResult = await db.execute(
+        sql`
+          SELECT COUNT(*)::int AS ai_projects_this_month
+          FROM ${projects}
+          WHERE ${projects.status} = 'completed'
+            AND ${projects.createdAt} >= DATE_TRUNC('month', NOW())
+        `,
+      );
+
+      const totalAiProjects = Number(projectsResult.rows[0]?.total_ai_projects ?? 0);
+      const totalAiTasks = Number(tasksResult.rows[0]?.total_ai_tasks ?? 0);
+      const totalStoryPoints = Number(tasksResult.rows[0]?.total_story_points ?? 0);
+      const aiProjectsThisMonth = Number(thisMonthResult.rows[0]?.ai_projects_this_month ?? 0);
+
+      // Estimate time saved: assume 2 hours per story point for manual task creation
+      const estimatedHoursSaved = Math.round(totalStoryPoints * 2);
+
+      res.json({
+        totalGenerations: totalAiProjects,
+        generationsThisMonth: aiProjectsThisMonth,
+        tasksGenerated: totalAiTasks,
+        storyPointsGenerated: totalStoryPoints,
+        estimatedHoursSaved: estimatedHoursSaved,
+      });
+    } catch (error) {
+      console.error("Error fetching AI usage data:", error);
+      res.status(500).json({ error: "Failed to fetch AI usage data" });
+    }
+  });
+
   app.get("/api/dashboard", async (_req, res) => {
     try {
       const allProjects = await storage.getProjects();
@@ -611,6 +714,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error building dashboard:", error);
       res.status(500).json({ error: "Failed to build dashboard data" });
+    }
+  });
+
+  app.get("/api/profile/activity", async (req, res, next) => {
+    try {
+      console.log("Profile activity route hit:", req.method, req.path);
+      // Ensure we always send JSON with proper content-type header
+      res.setHeader("Content-Type", "application/json");
+      
+      const allProjects = await storage.getProjects();
+      const allTasks = await Promise.all(
+        allProjects.map(async (project) => {
+          return await storage.getTasksByProject(project.id);
+        })
+      ).then(results => results.flat());
+
+      // Get recent project updates
+      const recentProjectEvents = allProjects
+        .map((project) => ({
+          id: `project-${project.id}`,
+          headline: `Updated project ${project.key}`,
+          context: project.description || `Project ${project.name} was updated`,
+          timestamp: project.updatedAt,
+          type: "project" as const,
+          projectId: project.id,
+        }))
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )
+        .slice(0, 5);
+
+      // Get recent task updates (status changes, completions, etc.)
+      const recentTaskEvents = allTasks
+        .map((task) => {
+          const project = allProjects.find((p) => p.id === task.projectId);
+          const projectKey = project?.key || "UNKNOWN";
+          
+          let headline = "";
+          let context = "";
+          
+          if (task.status === "done") {
+            headline = `Completed task ${projectKey}-${task.key}`;
+            context = task.title;
+          } else if (task.status === "in_progress") {
+            headline = `Started task ${projectKey}-${task.key}`;
+            context = task.title;
+          } else if (task.status === "review") {
+            headline = `Moved task ${projectKey}-${task.key} to review`;
+            context = task.title;
+          } else {
+            headline = `Updated task ${projectKey}-${task.key}`;
+            context = task.title;
+          }
+
+          return {
+            id: `task-${task.id}`,
+            headline,
+            context,
+            timestamp: task.updatedAt || task.createdAt,
+            type: "task" as const,
+            projectId: task.projectId,
+          };
+        })
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )
+        .slice(0, 10);
+
+      // Combine and sort all activities
+      const activities = [...recentProjectEvents, ...recentTaskEvents]
+        .filter((activity) => activity.timestamp != null) // Filter out activities with null/undefined timestamps
+        .sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )
+        .slice(0, 15)
+        .map((activity) => {
+          const timestamp = activity.timestamp instanceof Date 
+            ? activity.timestamp.toISOString() 
+            : typeof activity.timestamp === 'string' 
+              ? new Date(activity.timestamp).toISOString() 
+              : new Date().toISOString(); // Fallback to current time if invalid
+          return {
+            ...activity,
+            timestamp,
+          };
+        });
+
+      // Check if response has already been sent
+      if (res.headersSent) {
+        return;
+      }
+      
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching profile activity:", error);
+      // Check if response has already been sent
+      if (res.headersSent) {
+        return next(error);
+      }
+      // Ensure error response is also JSON
+      res.setHeader("Content-Type", "application/json");
+      res.status(500).json({ 
+        error: "Failed to fetch profile activity",
+        message: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

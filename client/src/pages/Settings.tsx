@@ -6,15 +6,67 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import PageContainer from "@/components/PageContainer";
+import { useState, useEffect } from "react";
+
+interface SettingsState {
+  name: string;
+  email: string;
+  company: string;
+  autoGenerate: boolean;
+  detailedSpecs: boolean;
+  architectureDiagrams: boolean;
+  emailNotifications: boolean;
+  taskUpdates: boolean;
+}
+
+const SETTINGS_STORAGE_KEY = "app_settings";
 
 export default function Settings() {
   const { toast } = useToast();
+  
+  const [settings, setSettings] = useState<SettingsState>({
+    name: "John Doe",
+    email: "john.doe@example.com",
+    company: "Acme Inc.",
+    autoGenerate: true,
+    detailedSpecs: true,
+    architectureDiagrams: false,
+    emailNotifications: true,
+    taskUpdates: true,
+  });
+
+  // Load settings from localStorage on mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setSettings((prev) => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.error("Failed to parse saved settings:", error);
+      }
+    }
+  }, []);
 
   const handleSave = () => {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
     toast({
       title: "Settings saved",
       description: "Your preferences have been updated successfully.",
     });
+  };
+
+  const handleCancel = () => {
+    // Reload settings from localStorage
+    const savedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setSettings((prev) => ({ ...prev, ...parsed }));
+      } catch (error) {
+        console.error("Failed to parse saved settings:", error);
+      }
+    }
   };
 
   return (
@@ -42,7 +94,8 @@ export default function Settings() {
                 <Label htmlFor="name">Name</Label>
                 <Input
                   id="name"
-                  defaultValue="John Doe"
+                  value={settings.name}
+                  onChange={(e) => setSettings({ ...settings, name: e.target.value })}
                   data-testid="input-name"
                 />
               </div>
@@ -51,7 +104,8 @@ export default function Settings() {
                 <Input
                   id="email"
                   type="email"
-                  defaultValue="john.doe@example.com"
+                  value={settings.email}
+                  onChange={(e) => setSettings({ ...settings, email: e.target.value })}
                   data-testid="input-email"
                 />
               </div>
@@ -59,7 +113,8 @@ export default function Settings() {
                 <Label htmlFor="company">Company</Label>
                 <Input
                   id="company"
-                  defaultValue="Acme Inc."
+                  value={settings.company}
+                  onChange={(e) => setSettings({ ...settings, company: e.target.value })}
                   data-testid="input-company"
                 />
               </div>
@@ -83,7 +138,8 @@ export default function Settings() {
                 </div>
                 <Switch
                   id="auto-generate"
-                  defaultChecked
+                  checked={settings.autoGenerate}
+                  onCheckedChange={(checked) => setSettings({ ...settings, autoGenerate: checked })}
                   data-testid="switch-auto-generate"
                 />
               </div>
@@ -97,7 +153,8 @@ export default function Settings() {
                 </div>
                 <Switch
                   id="detailed-specs"
-                  defaultChecked
+                  checked={settings.detailedSpecs}
+                  onCheckedChange={(checked) => setSettings({ ...settings, detailedSpecs: checked })}
                   data-testid="switch-detailed-specs"
                 />
               </div>
@@ -111,6 +168,8 @@ export default function Settings() {
                 </div>
                 <Switch
                   id="architecture-diagrams"
+                  checked={settings.architectureDiagrams}
+                  onCheckedChange={(checked) => setSettings({ ...settings, architectureDiagrams: checked })}
                   data-testid="switch-architecture-diagrams"
                 />
               </div>
@@ -134,7 +193,8 @@ export default function Settings() {
                 </div>
                 <Switch
                   id="email-notifications"
-                  defaultChecked
+                  checked={settings.emailNotifications}
+                  onCheckedChange={(checked) => setSettings({ ...settings, emailNotifications: checked })}
                   data-testid="switch-email-notifications"
                 />
               </div>
@@ -148,7 +208,8 @@ export default function Settings() {
                 </div>
                 <Switch
                   id="task-updates"
-                  defaultChecked
+                  checked={settings.taskUpdates}
+                  onCheckedChange={(checked) => setSettings({ ...settings, taskUpdates: checked })}
                   data-testid="switch-task-updates"
                 />
               </div>
@@ -156,7 +217,7 @@ export default function Settings() {
           </Card>
 
           <div className="flex justify-end gap-2">
-            <Button variant="outline" data-testid="button-cancel">
+            <Button variant="outline" onClick={handleCancel} data-testid="button-cancel">
               Cancel
             </Button>
             <Button onClick={handleSave} data-testid="button-save">

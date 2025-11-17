@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import EnhancedKanbanBoard from "@/components/EnhancedKanbanBoard";
+import TimelineView from "@/components/TimelineView";
 import { Share2, Download, Settings, Sparkles } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useRoute } from "wouter";
@@ -275,9 +276,10 @@ export default function ProjectDetail() {
           </TabsContent>
 
           <TabsContent value="timeline" className="m-0 p-6">
-            <FeaturePlaceholder
-              title="Timeline view"
-              description="Visualize sprints, releases, and milestones. We’re building an interactive roadmap to surface schedule risks early."
+            <TimelineView
+              projectId={project.id}
+              tasks={tasks}
+              projectStartDate={new Date(project.createdAt)}
             />
           </TabsContent>
 

@@ -53,7 +53,7 @@ export default function Help() {
 
     return (
         <PageContainer className="py-4">
-            <div className="border-b border-border bg-card py-4">
+            <div className="border-b border-border bg-card py-4 px-4 sm:px-6 lg:px-8">
                 <Breadcrumbs items={[{ label: "Help Center" }]} />
                 <div className="mt-3 space-y-2">
                     <h1 className="text-2xl font-semibold">How can we help?</h1>

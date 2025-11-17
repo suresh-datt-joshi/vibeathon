@@ -19,6 +19,13 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import PageContainer from "@/components/PageContainer";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { format } from "date-fns";
 
 interface ReportsSummary {
   totalProjects: number;
@@ -47,6 +54,23 @@ interface ProjectWithCounts {
   modules: number;
 }
 
+interface VelocityData {
+  weeklyVelocity: Array<{
+    week: string;
+    storyPoints: number;
+  }>;
+  totalStoryPointsCompleted: number;
+  averageVelocity: number;
+}
+
+interface AIUsageData {
+  totalGenerations: number;
+  generationsThisMonth: number;
+  tasksGenerated: number;
+  storyPointsGenerated: number;
+  estimatedHoursSaved: number;
+}
+
 export default function Reports() {
   const { data: summary, isLoading } = useQuery<ReportsSummary>({
     queryKey: ["/api/reports/summary"],
@@ -63,6 +87,24 @@ export default function Reports() {
     isLoading: isProjectsLoading,
   } = useQuery<ProjectWithCounts[]>({
     queryKey: ["/api/projects"],
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+  });
+
+  const {
+    data: velocityData,
+    isLoading: isVelocityLoading,
+  } = useQuery<VelocityData>({
+    queryKey: ["/api/reports/velocity"],
+    refetchInterval: 10000,
+    refetchIntervalInBackground: true,
+  });
+
+  const {
+    data: aiUsageData,
+    isLoading: isAIUsageLoading,
+  } = useQuery<AIUsageData>({
+    queryKey: ["/api/reports/ai-usage"],
     refetchInterval: 10000,
     refetchIntervalInBackground: true,
   });
@@ -279,35 +321,70 @@ export default function Reports() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">E-commerce Platform</p>
-                        <p className="text-xs text-muted-foreground">ECOM</p>
-                      </div>
-                      <Badge variant="outline" className="bg-[hsl(var(--lozenge-in-progress-bg))] text-[hsl(var(--lozenge-in-progress))] border-[hsl(var(--lozenge-in-progress))]">
-                        In Progress
-                      </Badge>
+                  {isProjectsLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-16" />
+                          </div>
+                          <Skeleton className="h-5 w-20" />
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Mobile App Redesign</p>
-                        <p className="text-xs text-muted-foreground">MOBI</p>
-                      </div>
-                      <Badge variant="outline" className="bg-[hsl(var(--lozenge-todo-bg))] text-[hsl(var(--lozenge-todo))] border-[hsl(var(--lozenge-todo))]">
-                        Planning
-                      </Badge>
+                  ) : projects && projects.length > 0 ? (
+                    <div className="space-y-4">
+                      {projects.map((project) => {
+                        // Calculate completion status based on task completion, not database status
+                        const isComplete =
+                          project.tasks > 0 && project.completedTasks === project.tasks;
+                        const hasProgress =
+                          project.tasks > 0 && project.completedTasks > 0;
+                        
+                        // Determine status based on actual completion
+                        const derivedStatus = isComplete
+                          ? "completed"
+                          : hasProgress
+                          ? "processing"
+                          : "planning";
+
+                        const statusBadgeClass = {
+                          completed: "bg-[hsl(var(--lozenge-done-bg))] text-[hsl(var(--lozenge-done))] border-[hsl(var(--lozenge-done))]",
+                          processing: "bg-[hsl(var(--lozenge-in-progress-bg))] text-[hsl(var(--lozenge-in-progress))] border-[hsl(var(--lozenge-in-progress))]",
+                          planning: "bg-[hsl(var(--lozenge-todo-bg))] text-[hsl(var(--lozenge-todo))] border-[hsl(var(--lozenge-todo))]",
+                        }[derivedStatus] || "bg-[hsl(var(--lozenge-todo-bg))] text-[hsl(var(--lozenge-todo))] border-[hsl(var(--lozenge-todo))]";
+
+                        const statusLabel = {
+                          completed: "Completed",
+                          processing: "In Progress",
+                          planning: "Planning",
+                        }[derivedStatus] || "Planning";
+
+                        return (
+                          <div
+                            key={project.id}
+                            className="flex items-center justify-between"
+                          >
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">{project.name}</p>
+                              <p className="text-xs text-muted-foreground">{project.key}</p>
+                            </div>
+                            <Badge variant="outline" className={statusBadgeClass}>
+                              {statusLabel}
+                            </Badge>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Analytics Suite</p>
-                        <p className="text-xs text-muted-foreground">DASH</p>
-                      </div>
-                      <Badge variant="outline" className="bg-[hsl(var(--lozenge-done-bg))] text-[hsl(var(--lozenge-done))] border-[hsl(var(--lozenge-done))]">
-                        Completed
-                      </Badge>
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No projects available yet.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
@@ -387,13 +464,65 @@ export default function Reports() {
                 <CardHeader>
                   <CardTitle>Sprint Velocity</CardTitle>
                   <CardDescription>
-                    Story points completed per sprint
+                    Story points completed per week
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="h-64 flex items-center justify-center text-muted-foreground">
-                    Velocity chart will be displayed here
-                  </div>
+                  {isVelocityLoading ? (
+                    <div className="h-64 flex items-center justify-center">
+                      <Skeleton className="h-full w-full" />
+                    </div>
+                  ) : velocityData && velocityData.weeklyVelocity.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Total Story Points</p>
+                          <p className="text-2xl font-bold">{velocityData.totalStoryPointsCompleted}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Average Velocity</p>
+                          <p className="text-2xl font-bold">{velocityData.averageVelocity} pts/week</p>
+                        </div>
+                      </div>
+                      <ChartContainer
+                        config={{
+                          storyPoints: {
+                            label: "Story Points",
+                            color: "hsl(var(--chart-1))",
+                          },
+                        }}
+                        className="h-[300px]"
+                      >
+                        <BarChart data={velocityData.weeklyVelocity.map((item) => ({
+                          week: format(new Date(item.week), "MMM dd"),
+                          storyPoints: item.storyPoints,
+                        }))}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis
+                            dataKey="week"
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                          />
+                          <YAxis
+                            tickLine={false}
+                            axisLine={false}
+                            tickMargin={8}
+                          />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Bar
+                            dataKey="storyPoints"
+                            fill="var(--color-storyPoints)"
+                            radius={[4, 4, 0, 0]}
+                          />
+                        </BarChart>
+                      </ChartContainer>
+                    </div>
+                  ) : (
+                    <div className="h-64 flex items-center justify-center text-muted-foreground">
+                      No velocity data available yet. Complete some tasks to see your velocity.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -407,29 +536,64 @@ export default function Reports() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Total Generations</p>
-                        <p className="text-xs text-muted-foreground">This month</p>
-                      </div>
-                      <div className="text-2xl font-bold">34</div>
+                  {isAIUsageLoading ? (
+                    <div className="space-y-4">
+                      {Array.from({ length: 3 }).map((_, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between"
+                        >
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                          <Skeleton className="h-8 w-16" />
+                        </div>
+                      ))}
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Tasks Generated</p>
-                        <p className="text-xs text-muted-foreground">AI-created</p>
+                  ) : aiUsageData ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Total Generations</p>
+                          <p className="text-xs text-muted-foreground">AI projects created</p>
+                        </div>
+                        <div className="text-2xl font-bold">{aiUsageData.totalGenerations}</div>
                       </div>
-                      <div className="text-2xl font-bold">428</div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">Time Saved</p>
-                        <p className="text-xs text-muted-foreground">Estimated hours</p>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Generations This Month</p>
+                          <p className="text-xs text-muted-foreground">Current month</p>
+                        </div>
+                        <div className="text-2xl font-bold">{aiUsageData.generationsThisMonth}</div>
                       </div>
-                      <div className="text-2xl font-bold">52</div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Tasks Generated</p>
+                          <p className="text-xs text-muted-foreground">AI-created tasks</p>
+                        </div>
+                        <div className="text-2xl font-bold">{aiUsageData.tasksGenerated}</div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Story Points Generated</p>
+                          <p className="text-xs text-muted-foreground">Total story points</p>
+                        </div>
+                        <div className="text-2xl font-bold">{aiUsageData.storyPointsGenerated}</div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">Time Saved</p>
+                          <p className="text-xs text-muted-foreground">Estimated hours</p>
+                        </div>
+                        <div className="text-2xl font-bold">{aiUsageData.estimatedHoursSaved}</div>
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No AI usage data available yet.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>

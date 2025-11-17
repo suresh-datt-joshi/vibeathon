@@ -38,6 +38,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
 
 export default function Profile() {
   const [, setLocation] = useLocation();
@@ -68,6 +69,19 @@ architecture tools.`,
     queryKey: ["/api/reports/summary"],
   });
 
+  const { data: projects = [] } = useQuery<Array<{
+    id: string;
+    key: string;
+    name: string;
+    description: string | null;
+    status: string;
+    updatedAt: string | Date;
+    tasks: number;
+    completedTasks: number;
+  }>>({
+    queryKey: ["/api/projects"],
+  });
+
   const stats = useMemo(
     () => ({
       totalProjects: reportSummary?.totalProjects ?? 0,
@@ -93,65 +107,43 @@ architecture tools.`,
     return initials || "JD";
   }, [profile.name]);
 
-  const recentProjects = useMemo(
-    () => [
-      {
-        id: "proj-1",
-        key: "VIBE-201",
-        name: "AI Workflow Automation",
-        summary: "Automating sprint rituals with AI-generated updates.",
-        status: "In progress",
-        updated: "Updated 2 days ago",
-        tags: ["AI", "Automation"],
-        projectId: "1",
-      },
-      {
-        id: "proj-2",
-        key: "VIBE-186",
-        name: "Design System Refresh",
-        summary: "Refining UI tokens and themed components for consistency.",
-        status: "Review",
-        updated: "Updated 5 days ago",
-        tags: ["Design", "UI"],
-        projectId: "2",
-      },
-      {
-        id: "proj-3",
-        key: "VIBE-174",
-        name: "Analytics Suite",
-        summary: "Launching real-time velocity and burndown reporting.",
-        status: "Shipped",
-        updated: "Released last week",
-        tags: ["Metrics", "Insights"],
-        projectId: "3",
-      },
-    ],
-    []
-  );
+  const recentProjects = useMemo(() => {
+    return projects
+      .slice()
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      )
+      .slice(0, 10)
+      .map((project) => {
+        const progress =
+          project.tasks > 0
+            ? Math.round((project.completedTasks / project.tasks) * 100)
+            : 0;
 
-  const recentActivity = useMemo(
-    () => [
-      {
-        id: "activity-1",
-        headline: "Closed task VIBE-341",
-        context: "Merged AI prompt refinements into main branch.",
-        timestamp: "3 hours ago",
-      },
-      {
-        id: "activity-2",
-        headline: "Left feedback on PR #128",
-        context: "Suggested refactoring for the project timeline widget.",
-        timestamp: "Yesterday",
-      },
-      {
-        id: "activity-3",
-        headline: "Created sprint plan",
-        context: "Defined milestones for the AI Workflow Automation track.",
-        timestamp: "2 days ago",
-      },
-    ],
-    []
-  );
+        let statusLabel = "In progress";
+        if (project.status === "completed" || progress === 100) {
+          statusLabel = "Completed";
+        } else if (project.status === "processing") {
+          statusLabel = "Processing";
+        } else if (project.status === "failed") {
+          statusLabel = "Failed";
+        }
+
+        return {
+          id: project.id,
+          key: project.key,
+          name: project.name,
+          summary: project.description || "No description available",
+          status: statusLabel,
+          updated: formatDistanceToNow(new Date(project.updatedAt), {
+            addSuffix: true,
+          }),
+          tags: project.status === "processing" ? ["Processing"] : [],
+          projectId: project.id,
+        };
+      });
+  }, [projects]);
 
   const handleEditFieldChange = useCallback(
     (field: keyof typeof profile, value: string) => {
@@ -193,9 +185,17 @@ architecture tools.`,
 
   const handleProjectNavigate = useCallback(
     (projectId: string) => {
-      setLocation(`/project/${projectId}`);
+      if (projectId) {
+        setLocation(`/project/${projectId}`);
+      } else {
+        toast({
+          title: "Unable to open project",
+          description: "Project ID is missing.",
+          variant: "destructive",
+        });
+      }
     },
-    [setLocation]
+    [setLocation, toast]
   );
 
   return (
@@ -266,9 +266,6 @@ architecture tools.`,
                 </TabsTrigger>
                 <TabsTrigger value="projects" data-testid="tab-projects">
                   Projects
-                </TabsTrigger>
-                <TabsTrigger value="activity" data-testid="tab-activity">
-                  Activity
                 </TabsTrigger>
               </TabsList>
 
@@ -348,76 +345,55 @@ architecture tools.`,
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {recentProjects.map((project) => (
-                      <div
-                        key={project.id}
-                        className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/20 p-4 transition hover:border-border"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">
-                              {project.key}
-                            </p>
-                            <h3 className="text-lg font-semibold">
-                              {project.name}
-                            </h3>
+                    {recentProjects.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-8">
+                        No projects found. Create your first project to get started.
+                      </p>
+                    ) : (
+                      recentProjects.map((project) => (
+                        <div
+                          key={project.id}
+                          className="flex flex-col gap-3 rounded-lg border border-border/60 bg-muted/20 p-4 transition hover:border-border"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">
+                                {project.key}
+                              </p>
+                              <h3 className="text-lg font-semibold">
+                                {project.name}
+                              </h3>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Badge variant="secondary">{project.status}</Badge>
+                              <span>{project.updated}</span>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Badge variant="secondary">{project.status}</Badge>
-                            <span>{project.updated}</span>
+                          <p className="text-sm text-muted-foreground">
+                            {project.summary}
+                          </p>
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap gap-2">
+                              {project.tags.map((tag) => (
+                                <Badge
+                                  key={`${project.id}-${tag}`}
+                                  variant="outline"
+                                >
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleProjectNavigate(project.projectId)}
+                            >
+                              Open project
+                            </Button>
                           </div>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {project.summary}
-                        </p>
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex flex-wrap gap-2">
-                            {project.tags.map((tag) => (
-                              <Badge
-                                key={`${project.id}-${tag}`}
-                                variant="outline"
-                              >
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleProjectNavigate(project.projectId)}
-                          >
-                            Open project
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="activity" className="space-y-4">
-                <Card data-testid="card-recent-activity">
-                  <CardHeader>
-                    <CardTitle>Recent Activity</CardTitle>
-                    <CardDescription>Your recent actions</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {recentActivity.map((entry) => (
-                      <div
-                        key={entry.id}
-                        className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/20 p-4"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="font-medium">{entry.headline}</h3>
-                          <span className="text-sm text-muted-foreground">
-                            {entry.timestamp}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {entry.context}
-                        </p>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
