@@ -1,10 +1,12 @@
 # ArchiMind
 
-<img width="1920" height="1080" alt="Screenshot (2)" src="https://github.com/user-attachments/assets/f7125ec5-2777-4495-8446-5c68b2247ac1" />
 
 an AI-powered project planning and architecture tool that turns ideas into project specs. It uses Google Gemini to analyze requirements and generate project plans, system architecture, database schemas, and task breakdowns. It includes a Kanban board for task management, analytics dashboards, and a UI based on the Atlassian Design System. Built with React/TypeScript, Node.js/Express, and PostgreSQL.
 
 ## Screenshots
+
+### Dashboard
+<img width="1920" height="1080" alt="Screenshot (2)" src="https://github.com/user-attachments/assets/f7125ec5-2777-4495-8446-5c68b2247ac1" />
 
 ### Project Planning
 <img width="1920" height="1080" alt="Screenshot (4)" src="https://github.com/user-attachments/assets/e1218fcd-31f6-4d31-8833-1fe12d7de818" />
