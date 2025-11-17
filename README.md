@@ -1,22 +1,22 @@
 # vibeathon
 
-![Logo](assets/logo.png)
+<img width="1920" height="1080" alt="Screenshot (2)" src="https://github.com/user-attachments/assets/f7125ec5-2777-4495-8446-5c68b2247ac1" />
 
 AI-powered project planning and architecture engine that transforms ideas into comprehensive project specifications.
 
 ## Screenshots
 
-### Dashboard
-![Dashboard](assets/screenshots/dashboard.png)
-
 ### Project Planning
-![Project Planning](assets/screenshots/project-planning.png)
+<img width="1920" height="1080" alt="Screenshot (4)" src="https://github.com/user-attachments/assets/e1218fcd-31f6-4d31-8833-1fe12d7de818" />
+
 
 ### Kanban Board
-![Kanban Board](assets/screenshots/kanban-board.png)
 
-### Analytics
-![Analytics](assets/screenshots/analytics.png)
+<img width="1920" height="1080" alt="Screenshot (5)" src="https://github.com/user-attachments/assets/e4074684-ac67-4109-8d3b-7bd2f3ede2ab" />
+
+### Report
+<img width="1920" height="1080" alt="Screenshot (8)" src="https://github.com/user-attachments/assets/a92cf5ff-b597-46fa-8577-d7488dbb1d22" />
+
 
 ## Features
 
