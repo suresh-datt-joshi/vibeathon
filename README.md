@@ -1,22 +1,24 @@
-# vibeathon
+# ArchiMind
 
-![Logo](assets/logo.png)
 
-AI-powered project planning and architecture engine that transforms ideas into comprehensive project specifications.
+an AI-powered project planning and architecture tool that turns ideas into project specs. It uses Google Gemini to analyze requirements and generate project plans, system architecture, database schemas, and task breakdowns. It includes a Kanban board for task management, analytics dashboards, and a UI based on the Atlassian Design System. Built with React/TypeScript, Node.js/Express, and PostgreSQL.
 
 ## Screenshots
 
 ### Dashboard
-![Dashboard](assets/screenshots/dashboard.png)
+<img width="1920" height="1080" alt="Screenshot (2)" src="https://github.com/user-attachments/assets/f7125ec5-2777-4495-8446-5c68b2247ac1" />
 
 ### Project Planning
-![Project Planning](assets/screenshots/project-planning.png)
+<img width="1920" height="1080" alt="Screenshot (4)" src="https://github.com/user-attachments/assets/e1218fcd-31f6-4d31-8833-1fe12d7de818" />
+
 
 ### Kanban Board
-![Kanban Board](assets/screenshots/kanban-board.png)
 
-### Analytics
-![Analytics](assets/screenshots/analytics.png)
+<img width="1920" height="1080" alt="Screenshot (5)" src="https://github.com/user-attachments/assets/e4074684-ac67-4109-8d3b-7bd2f3ede2ab" />
+
+### Report
+<img width="1920" height="1080" alt="Screenshot (8)" src="https://github.com/user-attachments/assets/a92cf5ff-b597-46fa-8577-d7488dbb1d22" />
+
 
 ## Features
 
