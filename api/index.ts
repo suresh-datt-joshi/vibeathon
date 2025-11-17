@@ -1,7 +1,9 @@
-// Vercel serverless function handler
+// Vercel serverless function handler for all API routes
 import express, { type Request, Response, NextFunction } from "express";
+import serverless from "serverless-http";
 import { registerRoutes } from "../server/routes";
 
+// Create Express app instance
 const app = express();
 
 declare module 'http' {
@@ -48,14 +50,20 @@ app.use((req, res, next) => {
 
 // Initialize routes (Vercel serverless functions don't need HTTP server)
 let routesInitialized = false;
+let routesInitPromise: Promise<void> | null = null;
 
 async function initializeRoutes() {
-  if (!routesInitialized) {
-    // registerRoutes returns a Server, but we don't need it for serverless
-    // We'll just ignore the return value
-    await registerRoutes(app).catch(console.error);
-    routesInitialized = true;
+  if (!routesInitPromise) {
+    routesInitPromise = (async () => {
+      if (!routesInitialized) {
+        // registerRoutes returns a Server, but we don't need it for serverless
+        // We'll just ignore the return value
+        await registerRoutes(app).catch(console.error);
+        routesInitialized = true;
+      }
+    })();
   }
+  return routesInitPromise;
 }
 
 // Initialize routes on first request
@@ -65,7 +73,9 @@ app.use(async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Error initializing routes:", error);
-    res.status(500).json({ error: "Failed to initialize routes" });
+    if (!res.headersSent) {
+      res.status(500).json({ error: "Failed to initialize routes" });
+    }
   }
 });
 
@@ -73,9 +83,11 @@ app.use(async (req, res, next) => {
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
+  if (!res.headersSent) {
+    res.status(status).json({ message });
+  }
 });
 
-// Export as Vercel serverless function
-export default app;
+// Wrap Express app with serverless-http for Vercel compatibility
+export default serverless(app);
 

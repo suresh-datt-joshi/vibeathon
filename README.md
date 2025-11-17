@@ -53,6 +53,25 @@ AI-powered project planning and architecture engine that transforms ideas into c
 
 4. Access the application at `http://localhost:5000`
 
+## Deployment
+
+### Deploy to Vercel
+
+This application is configured for easy deployment to Vercel. See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed step-by-step instructions.
+
+**Quick Deploy:**
+
+1. Push your code to GitHub/GitLab/Bitbucket
+2. Import your repository in [Vercel](https://vercel.com/new)
+3. Add environment variables:
+   - `GEMINI_API_KEY`
+   - `DATABASE_URL`
+   - `SESSION_SECRET`
+   - `NODE_ENV=production`
+4. Deploy!
+
+For detailed instructions, troubleshooting, and configuration options, see the [Vercel Deployment Guide](./VERCEL_DEPLOYMENT.md).
+
 ## Architecture
 
 ### System Architecture
