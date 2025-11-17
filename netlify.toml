@@ -1,0 +1,25 @@
+[build]
+  command = "npm run build"
+  publish = "dist/public"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[functions]
+  node_bundler = "esbuild"
+  included_files = ["dist/**", "server/**", "shared/**", "db/**"]
+  
+[functions.server]
+  included_files = ["dist/**", "server/**", "shared/**", "db/**"]
+

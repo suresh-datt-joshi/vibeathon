@@ -1,24 +1,22 @@
-# ArchiMind
+# vibeathon
 
+![Logo](assets/logo.png)
 
-an AI-powered project planning and architecture tool that turns ideas into project specs. It uses Google Gemini to analyze requirements and generate project plans, system architecture, database schemas, and task breakdowns. It includes a Kanban board for task management, analytics dashboards, and a UI based on the Atlassian Design System. Built with React/TypeScript, Node.js/Express, and PostgreSQL.
-
+AI-powered project planning and architecture engine that transforms ideas into comprehensive project specifications.
+g
 ## Screenshots
 
 ### Dashboard
-<img width="1920" height="1080" alt="Screenshot (2)" src="https://github.com/user-attachments/assets/f7125ec5-2777-4495-8446-5c68b2247ac1" />
+![Dashboard](assets/screenshots/dashboard.png)
 
 ### Project Planning
-<img width="1920" height="1080" alt="Screenshot (4)" src="https://github.com/user-attachments/assets/e1218fcd-31f6-4d31-8833-1fe12d7de818" />
-
+![Project Planning](assets/screenshots/project-planning.png)
 
 ### Kanban Board
+![Kanban Board](assets/screenshots/kanban-board.png)
 
-<img width="1920" height="1080" alt="Screenshot (5)" src="https://github.com/user-attachments/assets/e4074684-ac67-4109-8d3b-7bd2f3ede2ab" />
-
-### Report
-<img width="1920" height="1080" alt="Screenshot (8)" src="https://github.com/user-attachments/assets/a92cf5ff-b597-46fa-8577-d7488dbb1d22" />
-
+### Analytics
+![Analytics](assets/screenshots/analytics.png)
 
 ## Features
 
@@ -57,22 +55,31 @@ an AI-powered project planning and architecture tool that turns ideas into proje
 
 ## Deployment
 
-### Deploy to Vercel
+### Deploy to Netlify
 
-This application is configured for easy deployment to Vercel. See [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md) for detailed step-by-step instructions.
+This application is configured for deployment to Netlify using Netlify Functions.
 
 **Quick Deploy:**
 
 1. Push your code to GitHub/GitLab/Bitbucket
-2. Import your repository in [Vercel](https://vercel.com/new)
-3. Add environment variables:
-   - `GEMINI_API_KEY`
-   - `DATABASE_URL`
-   - `SESSION_SECRET`
-   - `NODE_ENV=production`
-4. Deploy!
+2. Import your repository in [Netlify](https://app.netlify.com/start)
+3. Configure build settings:
+   - **Build command:** `npm run build`
+   - **Publish directory:** `dist/public`
+4. Add environment variables in Netlify dashboard:
+   - `GEMINI_API_KEY` - Your Google Gemini API key
+   - `DATABASE_URL` - PostgreSQL connection string
+   - `SESSION_SECRET` - Session encryption secret (generate a random string)
+   - `NODE_ENV` - Set to `production`
+5. Deploy!
 
-For detailed instructions, troubleshooting, and configuration options, see the [Vercel Deployment Guide](./VERCEL_DEPLOYMENT.md).
+**Environment Variables:**
+- `GEMINI_API_KEY`: Your Google Gemini API key
+- `DATABASE_URL`: PostgreSQL connection string (e.g., Neon, Supabase, or other PostgreSQL provider)
+- `SESSION_SECRET`: A random string for session encryption (you can generate one with: `openssl rand -base64 32`)
+- `NODE_ENV`: Set to `production`
+
+The application uses Netlify Functions to handle API routes (`/api/*`) and serves static files directly from the build output.
 
 ## Architecture
 
