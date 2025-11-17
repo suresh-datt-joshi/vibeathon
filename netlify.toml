@@ -2,8 +2,12 @@
   command = "npm run build"
   publish = "dist/public"
 
+[build.install]
+  command = "npm install"
+
 [build.environment]
   NODE_VERSION = "20"
+  NPM_CONFIG_PRODUCTION = "false"
 
 [[redirects]]
   from = "/api/*"
