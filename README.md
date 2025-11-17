@@ -1,22 +1,24 @@
-# vibeathon
-
-![Logo](assets/logo.png)
+# ArchiMind
 
 AI-powered project planning and architecture engine that transforms ideas into comprehensive project specifications.
-g
+
 ## Screenshots
 
 ### Dashboard
-![Dashboard](assets/screenshots/dashboard.png)
+
+<img width="1920" height="1080" alt="Screenshot (2)" src="https://github.com/user-attachments/assets/43355094-65aa-4125-853f-c3cab27f7ccc" />
 
 ### Project Planning
-![Project Planning](assets/screenshots/project-planning.png)
+<img width="1920" height="1080" alt="Screenshot (4)" src="https://github.com/user-attachments/assets/59491b37-0cbb-4519-b88f-a4f3dca10273" />
+
 
 ### Kanban Board
-![Kanban Board](assets/screenshots/kanban-board.png)
+
+<img width="1920" height="1080" alt="Screenshot (5)" src="https://github.com/user-attachments/assets/075bd391-c8ee-4fd4-905f-7efb9d8c577a" />
 
 ### Analytics
-![Analytics](assets/screenshots/analytics.png)
+
+<img width="1920" height="1080" alt="Screenshot (8)" src="https://github.com/user-attachments/assets/1df047d6-5187-449e-a2c8-d9137aef7014" />
 
 ## Features
 
