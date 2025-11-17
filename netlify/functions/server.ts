@@ -51,10 +51,10 @@ app.use((req, res, next) => {
 });
 
 // Initialize routes and static serving
-let handler: ReturnType<typeof serverless> | null = null;
+let cachedHandler: ReturnType<typeof serverless> | null = null;
 
 async function initializeApp() {
-  if (handler) return handler;
+  if (cachedHandler) return cachedHandler;
 
   // Register API routes (this returns a Server but we don't need it for Netlify)
   await registerRoutes(app);
@@ -72,11 +72,11 @@ async function initializeApp() {
   // This function only handles API routes
 
   // Wrap Express app with serverless-http
-  handler = serverless(app, {
+  cachedHandler = serverless(app, {
     binary: ['image/*', 'font/*', 'application/octet-stream'],
   });
 
-  return handler;
+  return cachedHandler;
 }
 
 // Export the handler function
