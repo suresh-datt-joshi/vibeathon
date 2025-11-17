@@ -12,6 +12,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const ACTIVE_TASK_STATUSES = new Set(["todo", "in_progress", "review"]);
   const BLOCKED_TASK_STATUSES = new Set(["blocked", "backlog"]);
 
+  // Health check endpoint
+  app.get("/api/health", async (_req, res) => {
+    try {
+      // Test database connection
+      await storage.getProjects();
+      res.json({ 
+        status: "ok", 
+        database: "connected",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Health check failed:", error);
+      res.status(500).json({ 
+        status: "error",
+        database: "disconnected",
+        error: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
   app.post("/api/projects", async (req, res) => {
     try {
       const { name, key, requirements, description } = req.body;
@@ -448,7 +469,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/dashboard", async (_req, res) => {
     try {
+      console.log("Dashboard route called");
       const allProjects = await storage.getProjects();
+      console.log(`Found ${allProjects.length} projects`);
 
       const projectDetails = await Promise.all(
         allProjects.map(async (project) => {
@@ -713,7 +736,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Error building dashboard:", error);
-      res.status(500).json({ error: "Failed to build dashboard data" });
+      console.error("Error details:", error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : error);
+      res.status(500).json({ 
+        error: "Failed to build dashboard data",
+        message: error instanceof Error ? error.message : String(error),
+        ...(process.env.NODE_ENV === "development" && { 
+          stack: error instanceof Error ? error.stack : undefined 
+        })
+      });
     }
   });
 

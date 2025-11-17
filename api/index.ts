@@ -73,8 +73,12 @@ app.use(async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Error initializing routes:", error);
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
     if (!res.headersSent) {
-      res.status(500).json({ error: "Failed to initialize routes" });
+      res.status(500).json({ 
+        error: "Failed to initialize routes",
+        message: error instanceof Error ? error.message : String(error)
+      });
     }
   }
 });
@@ -83,8 +87,14 @@ app.use(async (req, res, next) => {
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
+  console.error("Express error handler:", err);
+  console.error("Error stack:", err.stack);
   if (!res.headersSent) {
-    res.status(status).json({ message });
+    res.status(status).json({ 
+      message,
+      error: err.message || "Internal Server Error",
+      ...(process.env.NODE_ENV === "development" && { stack: err.stack })
+    });
   }
 });
 
